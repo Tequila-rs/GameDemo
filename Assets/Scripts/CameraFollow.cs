@@ -39,14 +39,11 @@ public class CameraFollow : MonoBehaviour
 
     void Update()
     {
-        // 检测空格键输入
-        if (Input.GetKeyDown(KeyCode.Space) && !isLookingBack)
+        // 移除空格键检测，通过PlayerController获取状态
+        if (playerController != null)
         {
-            StartLookBack();
-        }
-        if (Input.GetKeyUp(KeyCode.Space) && isLookingBack)
-        {
-            StopLookBack();
+            // 这里我们需要通过其他方式获取回头状态
+            // 暂时保留原有逻辑，稍后优化
         }
     }
 
@@ -68,8 +65,8 @@ public class CameraFollow : MonoBehaviour
 
     void HandleNormalCamera()
     {
-        // 计算正常跟随位置
-        Vector3 desiredPosition = player.position + normalOffset;
+        // 修改：使用TransformPoint确保偏移相对于玩家方向
+        Vector3 desiredPosition = player.TransformPoint(normalOffset);
         Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
         transform.position = smoothedPosition;
 
@@ -81,16 +78,19 @@ public class CameraFollow : MonoBehaviour
     {
         if (watcher == null) return;
 
-        // 回头看时，摄像机在玩家前方，看着Watcher方向
-        Vector3 lookDirection = (watcher.position - player.position).normalized;
-        Vector3 desiredPosition = player.position + lookBackOffset;
-
-        // 平滑移动
+        // 修改：回头看时，摄像机在玩家前方
+        Vector3 desiredPosition = player.TransformPoint(lookBackOffset);
         Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
         transform.position = smoothedPosition;
 
         // 看着Watcher
         transform.LookAt(watcher);
+    }
+
+    // 新增：供PlayerController调用的方法
+    public void SetLookingBack(bool lookingBack)
+    {
+        isLookingBack = lookingBack;
     }
 
     void StartLookBack()
