@@ -818,6 +818,10 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 33bfa9d5cd3fca244a4896675a891326, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 5087c8513d6a75246aeeb72088055f24, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2459,6 +2463,10 @@ MonoBehaviour:
   runSpeed: 6
   rotationAngle: 90
   sideMoveSpeed: 4
+  jumpForce: 8
+  gravity: -25
+  animationSmoothTime: 0.1
+  lookBackRotationSpeed: 3
 --- !u!143 &797462828
 CharacterController:
   m_ObjectHideFlags: 0

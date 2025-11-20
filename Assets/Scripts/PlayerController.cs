@@ -1,57 +1,110 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float runSpeed = 6.0f;
-    public float rotationAngle = 90f; // 每次旋转的角度
-    public float sideMoveSpeed = 4.0f; // 新增：左右移动速度
+    public float rotationAngle = 90f;
+    public float sideMoveSpeed = 4.0f;
+    public float jumpForce = 8f;
+    public float gravity = -25f;
 
+    [Header("Animation Settings")]
+    public float animationSmoothTime = 0.1f;
+    public float lookBackRotationSpeed = 3f; // 新增：回头看时的旋转速度
+
+    // 组件引用
     private CharacterController controller;
-    private bool isLookingBack = false;
+    private Animator animator;
     private WatcherAI watcher;
-    private bool canTurn = true; // 防止连续旋转
-    private bool isMovementEnabled = true; // 控制移动是否启用
-    private Vector3 initialForward; // 初始面向方向
-    private Vector3 initialRight; // 初始右侧方向
+
+    // 移动状态变量
+    private bool isLookingBack = false;
+    private bool canTurn = true;
+    private bool isMovementEnabled = true;
+    private Vector3 initialForward;
+    private Vector3 initialRight;
+
+    // 物理相关变量
+    private Vector3 moveDirection;
+    private float velocityY;
+    private bool isGrounded;
+
+    // 动画相关变量
+    private float currentSpeed;
+    private int speedParamHash;
+    private int groundedParamHash;
+    private int jumpParamHash;
+    private int lookBackParamHash;
 
     // 摄像机相关
     private Camera mainCamera;
     private Vector3 originalCameraPosition;
     private Quaternion originalCameraRotation;
 
+    // 新增：回头看相关变量
+    private Quaternion targetLookBackRotation;
+    private Quaternion originalRotation;
+    private Coroutine lookBackCoroutine;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        animator = GetComponent<Animator>();
         mainCamera = Camera.main;
         watcher = FindObjectOfType<WatcherAI>();
 
-        // 保存初始方向
         initialForward = transform.forward;
         initialRight = transform.right;
 
-        // 保存摄像机原始位置
         originalCameraPosition = mainCamera.transform.localPosition;
         originalCameraRotation = mainCamera.transform.localRotation;
+
+        speedParamHash = Animator.StringToHash("Speed");
+        groundedParamHash = Animator.StringToHash("IsGrounded");
+        jumpParamHash = Animator.StringToHash("Jump");
+        lookBackParamHash = Animator.StringToHash("LookBack");
+
+        if (controller == null)
+            Debug.LogError("CharacterController component is missing!");
+        if (animator == null)
+            Debug.LogWarning("Animator component is missing! Animation will not work.");
     }
 
     void Update()
     {
+        HandleGroundCheck();
         HandleMovement();
         HandleLookBack();
-        HandleTurning(); // 处理转向
+        HandleTurning();
+        HandleJump();
+        UpdateAnimations();
+
+        // 新增：处理回头看时的平滑旋转
+        HandleLookBackRotation();
+    }
+
+    void HandleGroundCheck()
+    {
+        isGrounded = controller.isGrounded;
+
+        if (isGrounded && velocityY < 0)
+        {
+            velocityY = -2f;
+        }
     }
 
     void HandleMovement()
     {
-        if (!isMovementEnabled) return; // 如果移动被禁用，直接返回
+        if (!isMovementEnabled)
+        {
+            ApplyGravity();
+            return;
+        }
 
-        // 基础向前移动（使用当前面向方向）
-        Vector3 moveDirection = transform.forward * runSpeed;
+        Vector3 forwardMove = transform.forward * runSpeed;
 
-        // 新增：左右移动输入（使用初始方向为基准）
         float horizontalInput = 0f;
         if (Input.GetKey(KeyCode.LeftArrow))
         {
@@ -62,60 +115,74 @@ public class PlayerController : MonoBehaviour
             horizontalInput = 1f;
         }
 
-        // 左右移动（以初始方向为基准）
         Vector3 sideMovement = initialRight * horizontalInput * sideMoveSpeed;
 
-        // 合并移动方向
-        moveDirection += sideMovement;
+        moveDirection = forwardMove + sideMovement;
+        moveDirection.y = 0;
 
-        // 转换为世界空间方向
-        controller.SimpleMove(moveDirection);
+        ApplyGravity();
+
+        Vector3 finalMove = moveDirection + Vector3.up * velocityY;
+        controller.Move(finalMove * Time.deltaTime);
+
+        Vector3 horizontalVelocity = new Vector3(controller.velocity.x, 0, controller.velocity.z);
+        currentSpeed = horizontalVelocity.magnitude;
     }
 
-    // 修改：离散的90度转向
+    void ApplyGravity()
+    {
+        velocityY += gravity * Time.deltaTime;
+    }
+
+    void HandleJump()
+    {
+        if (!isMovementEnabled) return;
+
+        if (Input.GetButtonDown("Jump") && isGrounded)
+        {
+            velocityY = Mathf.Sqrt(jumpForce * -2f * gravity);
+            if (animator != null)
+                animator.SetTrigger(jumpParamHash);
+        }
+    }
+
     void HandleTurning()
     {
-        if (isLookingBack) return; // 回头看时不能转向
+        if (isLookingBack) return;
 
         if (canTurn)
         {
-            if (Input.GetKeyDown(KeyCode.A)) // 按下A键立即左转90度
+            if (Input.GetKeyDown(KeyCode.A))
             {
                 StartCoroutine(TurnCoroutine(-rotationAngle));
             }
-            else if (Input.GetKeyDown(KeyCode.D)) // 按下D键立即右转90度
+            else if (Input.GetKeyDown(KeyCode.D))
             {
                 StartCoroutine(TurnCoroutine(rotationAngle));
             }
         }
     }
 
-    // 新增：转向协程，防止连续旋转
     IEnumerator TurnCoroutine(float angle)
     {
         canTurn = false;
 
-        // 立即旋转90度
         transform.Rotate(0, angle, 0);
 
-        // 更新初始方向
         Quaternion rotation = Quaternion.Euler(0, angle, 0);
         initialForward = rotation * initialForward;
         initialRight = rotation * initialRight;
 
-        // 短暂延迟防止连续旋转
         yield return new WaitForSeconds(0.2f);
         canTurn = true;
     }
 
     void HandleLookBack()
     {
-        // 按下空格键开始回头看
         if (Input.GetKeyDown(KeyCode.Space) && !isLookingBack)
         {
             StartLookBack();
         }
-        // 松开空格键转回前方
         if (Input.GetKeyUp(KeyCode.Space) && isLookingBack)
         {
             StopLookBack();
@@ -125,7 +192,20 @@ public class PlayerController : MonoBehaviour
     void StartLookBack()
     {
         isLookingBack = true;
-        isMovementEnabled = false; // 禁用玩家移动
+        isMovementEnabled = false;
+
+        // 保存原始旋转
+        originalRotation = transform.rotation;
+
+        // 计算目标旋转（转身180度）
+        targetLookBackRotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
+
+        // 设置动画参数
+        if (animator != null)
+        {
+            animator.SetBool(lookBackParamHash, true);
+            animator.SetFloat(speedParamHash, 0f); // 强制设置速度为0，停止奔跑动画
+        }
 
         // 旋转摄像机看身后
         if (mainCamera != null)
@@ -145,7 +225,14 @@ public class PlayerController : MonoBehaviour
     void StopLookBack()
     {
         isLookingBack = false;
-        isMovementEnabled = true; // 启用玩家移动
+        isMovementEnabled = true;
+
+        // 恢复原始旋转
+        transform.rotation = originalRotation;
+
+        // 取消回头看动画状态
+        if (animator != null)
+            animator.SetBool(lookBackParamHash, false);
 
         // 恢复摄像机角度
         if (mainCamera != null)
@@ -161,5 +248,54 @@ public class PlayerController : MonoBehaviour
         }
 
         Debug.Log("Looking forward - Movement resumed, Watcher chasing");
+    }
+
+    // 新增：处理回头看时的平滑旋转
+    void HandleLookBackRotation()
+    {
+        if (isLookingBack)
+        {
+            // 平滑旋转角色模型
+            transform.rotation = Quaternion.Lerp(transform.rotation, targetLookBackRotation, lookBackRotationSpeed * Time.deltaTime);
+
+            // 确保速度参数为0，防止奔跑动画播放
+            if (animator != null)
+            {
+                animator.SetFloat(speedParamHash, 0f);
+            }
+        }
+    }
+
+    void UpdateAnimations()
+    {
+        if (animator == null) return;
+
+        // 只有在不回头看时才更新速度参数
+        if (!isLookingBack)
+        {
+            float smoothedSpeed = Mathf.Lerp(animator.GetFloat(speedParamHash), currentSpeed, animationSmoothTime);
+            animator.SetFloat(speedParamHash, smoothedSpeed);
+        }
+
+        animator.SetBool(groundedParamHash, isGrounded);
+    }
+
+    public void SetMovementEnabled(bool enabled)
+    {
+        isMovementEnabled = enabled;
+    }
+
+    public bool IsLookingBack()
+    {
+        return isLookingBack;
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        if (controller != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(transform.position + controller.center, controller.radius);
+        }
     }
 }
