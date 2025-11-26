@@ -8,11 +8,11 @@ public class CameraFollow : MonoBehaviour
     public Transform player;
     public Transform watcher;
     public Vector3 normalOffset = new Vector3(0f, 4f, -6f); // 正常第三人称偏移
-    public Vector3 lookBackOffset = new Vector3(0f, 3f, 6f); // 回头看时的第三人称偏移（在玩家前方）
+    public Vector3 lookBackOffset = new Vector3(0f, 4f, -3.5f); // 回头看时的第三人称偏移（在玩家前方）
     public float smoothSpeed = 8f;
 
     [Header("第一人称设置")]
-    public Vector3 firstPersonOffset = new Vector3(0f, 1.7f, 0.3f); // 第一人称摄像机位置
+    public Vector3 firstPersonOffset = new Vector3(0f, 1.7f, 1.1f); // 第一人称摄像机位置
     public Vector3 firstPersonLookBackOffset = new Vector3(0f, 1.7f, -0.3f); // 第一人称回头看位置
     public float firstPersonFOV = 75f; // 第一人称视野
 
