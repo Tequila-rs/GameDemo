@@ -4,15 +4,15 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float runSpeed = 6.0f;
+    public float runSpeed = 8.0f;
     public float rotationAngle = 90f;
-    public float sideMoveSpeed = 4.0f;
+    public float sideMoveSpeed = 5.0f;
     public float jumpForce = 8f;
     public float gravity = -25f;
 
     [Header("Animation Settings")]
     public float animationSmoothTime = 0.1f;
-    public float lookBackRotationSpeed = 3f; // 新增：回头看时的旋转速度
+    public float lookBackRotationSpeed = 5f; // 新增：回头看时的旋转速度
 
     // 组件引用
     private CharacterController controller;
@@ -106,11 +106,11 @@ public class PlayerController : MonoBehaviour
         Vector3 forwardMove = transform.forward * runSpeed;
 
         float horizontalInput = 0f;
-        if (Input.GetKey(KeyCode.LeftArrow))
+        if (Input.GetKey(KeyCode.Q))
         {
             horizontalInput = -1f;
         }
-        else if (Input.GetKey(KeyCode.RightArrow))
+        else if (Input.GetKey(KeyCode.E))
         {
             horizontalInput = 1f;
         }
