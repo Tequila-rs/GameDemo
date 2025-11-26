@@ -12,12 +12,13 @@ public class PlayerController : MonoBehaviour
 
     [Header("Animation Settings")]
     public float animationSmoothTime = 0.1f;
-    public float lookBackRotationSpeed = 5f; // 新增：回头看时的旋转速度
+    public float lookBackRotationSpeed = 3f; // 恢复旋转速度
 
     // 组件引用
     private CharacterController controller;
     private Animator animator;
     private WatcherAI watcher;
+    private CameraFollow cameraFollow;
 
     // 移动状态变量
     private bool isLookingBack = false;
@@ -38,28 +39,25 @@ public class PlayerController : MonoBehaviour
     private int jumpParamHash;
     private int lookBackParamHash;
 
-    // 摄像机相关
-    private Camera mainCamera;
-    private Vector3 originalCameraPosition;
-    private Quaternion originalCameraRotation;
-
     // 新增：回头看相关变量
     private Quaternion targetLookBackRotation;
     private Quaternion originalRotation;
-    private Coroutine lookBackCoroutine;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
-        mainCamera = Camera.main;
         watcher = FindObjectOfType<WatcherAI>();
+
+        // 获取CameraFollow组件
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            cameraFollow = mainCamera.GetComponent<CameraFollow>();
+        }
 
         initialForward = transform.forward;
         initialRight = transform.right;
-
-        originalCameraPosition = mainCamera.transform.localPosition;
-        originalCameraRotation = mainCamera.transform.localRotation;
 
         speedParamHash = Animator.StringToHash("Speed");
         groundedParamHash = Animator.StringToHash("IsGrounded");
@@ -81,7 +79,7 @@ public class PlayerController : MonoBehaviour
         HandleJump();
         UpdateAnimations();
 
-        // 新增：处理回头看时的平滑旋转
+        // 恢复：处理回头看时的平滑旋转
         HandleLookBackRotation();
     }
 
@@ -207,10 +205,10 @@ public class PlayerController : MonoBehaviour
             animator.SetFloat(speedParamHash, 0f); // 强制设置速度为0，停止奔跑动画
         }
 
-        // 旋转摄像机看身后
-        if (mainCamera != null)
+        // 通知摄像机开始回头看
+        if (cameraFollow != null)
         {
-            mainCamera.transform.RotateAround(transform.position, Vector3.up, 180f);
+            cameraFollow.SetLookingBack(true);
         }
 
         // 通知Watcher停止
@@ -234,11 +232,10 @@ public class PlayerController : MonoBehaviour
         if (animator != null)
             animator.SetBool(lookBackParamHash, false);
 
-        // 恢复摄像机角度
-        if (mainCamera != null)
+        // 通知摄像机停止回头看
+        if (cameraFollow != null)
         {
-            mainCamera.transform.localPosition = originalCameraPosition;
-            mainCamera.transform.localRotation = originalCameraRotation;
+            cameraFollow.SetLookingBack(false);
         }
 
         // 通知Watcher继续追击
@@ -250,12 +247,12 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Looking forward - Movement resumed, Watcher chasing");
     }
 
-    // 新增：处理回头看时的平滑旋转
+    // 恢复：处理回头看时的平滑旋转
     void HandleLookBackRotation()
     {
         if (isLookingBack)
         {
-            // 平滑旋转角色模型
+            // 平滑旋转角色模型到180度位置
             transform.rotation = Quaternion.Lerp(transform.rotation, targetLookBackRotation, lookBackRotationSpeed * Time.deltaTime);
 
             // 确保速度参数为0，防止奔跑动画播放

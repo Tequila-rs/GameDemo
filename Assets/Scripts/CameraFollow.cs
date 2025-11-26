@@ -7,12 +7,24 @@ public class CameraFollow : MonoBehaviour
     [Header("跟随设置")]
     public Transform player;
     public Transform watcher;
-    public Vector3 normalOffset = new Vector3(0f, 4f, -6f); // 正常跟随的偏移
-    public Vector3 lookBackOffset = new Vector3(0f, 3f, 3f); // 回头看时的偏移
+    public Vector3 normalOffset = new Vector3(0f, 4f, -6f); // 正常第三人称偏移
+    public Vector3 lookBackOffset = new Vector3(0f, 3f, 6f); // 回头看时的第三人称偏移（在玩家前方）
     public float smoothSpeed = 8f;
 
+    [Header("第一人称设置")]
+    public Vector3 firstPersonOffset = new Vector3(0f, 1.7f, 0.3f); // 第一人称摄像机位置
+    public Vector3 firstPersonLookBackOffset = new Vector3(0f, 1.7f, -0.3f); // 第一人称回头看位置
+    public float firstPersonFOV = 75f; // 第一人称视野
+
     private bool isLookingBack = false;
+    private bool isFirstPerson = false; // 视角模式
     private PlayerController playerController;
+    private Camera cam;
+    private float originalFOV;
+
+    // 新增：用于稳定镜头的变量
+    private Vector3 targetPosition;
+    private Quaternion targetRotation;
 
     void Start()
     {
@@ -35,95 +47,145 @@ public class CameraFollow : MonoBehaviour
                 watcher = watcherObj.transform;
             }
         }
+
+        // 获取摄像机组件
+        cam = GetComponent<Camera>();
+        if (cam != null)
+        {
+            originalFOV = cam.fieldOfView;
+        }
     }
 
     void Update()
     {
-        // 移除空格键检测，通过PlayerController获取状态
-        if (playerController != null)
-        {
-            // 这里我们需要通过其他方式获取回头状态
-            // 暂时保留原有逻辑，稍后优化
-        }
+        // 处理视角切换
+        HandleViewSwitch();
     }
 
     void LateUpdate()
     {
         if (player == null) return;
 
+        // 计算目标位置和旋转
+        CalculateTargetTransform();
+
+        // 平滑移动到目标位置和旋转
+        transform.position = Vector3.Lerp(transform.position, targetPosition, smoothSpeed * Time.deltaTime);
+        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, smoothSpeed * Time.deltaTime);
+
+        // 处理FOV变化
+        HandleFOV();
+    }
+
+    void CalculateTargetTransform()
+    {
         if (isLookingBack)
         {
-            // 回头看模式：摄像机在玩家前方，看着Watcher
-            HandleLookBackCamera();
+            // 回头看模式
+            if (isFirstPerson)
+            {
+                // 第一人称回头看模式（暂时简单处理）
+                CalculateFirstPersonLookBack();
+            }
+            else
+            {
+                // 第三人称回头看模式
+                CalculateThirdPersonLookBack();
+            }
         }
         else
         {
-            // 正常模式：摄像机在玩家后方，看着玩家
-            HandleNormalCamera();
+            // 正常模式
+            if (isFirstPerson)
+            {
+                // 第一人称正常模式
+                CalculateFirstPersonNormal();
+            }
+            else
+            {
+                // 第三人称正常模式
+                CalculateThirdPersonNormal();
+            }
         }
     }
 
-    void HandleNormalCamera()
+    void CalculateThirdPersonNormal()
     {
-        // 修改：使用TransformPoint确保偏移相对于玩家方向
-        Vector3 desiredPosition = player.TransformPoint(normalOffset);
-        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
-        transform.position = smoothedPosition;
-
-        // 看着玩家
-        transform.LookAt(player);
+        // 第三人称正常跟随
+        targetPosition = player.TransformPoint(normalOffset);
+        targetRotation = Quaternion.LookRotation(player.position - targetPosition);
     }
 
-    void HandleLookBackCamera()
+    void CalculateThirdPersonLookBack()
     {
-        if (watcher == null) return;
+        if (watcher == null)
+        {
+            // 如果没有Watcher，使用备用方案
+            targetPosition = player.TransformPoint(lookBackOffset);
+            targetRotation = Quaternion.LookRotation(player.position - targetPosition) * Quaternion.Euler(0, 180f, 0);
+            return;
+        }
 
-        // 修改：回头看时，摄像机在玩家前方
-        Vector3 desiredPosition = player.TransformPoint(lookBackOffset);
-        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
-        transform.position = smoothedPosition;
+        // 第三人称回头看：摄像机移动到玩家前方，看着Watcher
+        targetPosition = player.TransformPoint(lookBackOffset);
 
-        // 看着Watcher
-        transform.LookAt(watcher);
+        // 稳定地看着Watcher，使用固定位置而不是实时跟踪
+        Vector3 lookDirection = watcher.position - targetPosition;
+        targetRotation = Quaternion.LookRotation(lookDirection);
     }
 
-    // 新增：供PlayerController调用的方法
+    void CalculateFirstPersonNormal()
+    {
+        // 第一人称正常模式：摄像机在玩家头部位置
+        targetPosition = player.TransformPoint(firstPersonOffset);
+        targetRotation = player.rotation;
+    }
+
+    void CalculateFirstPersonLookBack()
+    {
+        // 第一人称回头看：暂时使用简单处理（后续修复）
+        CalculateFirstPersonNormal();
+    }
+
+    void HandleFOV()
+    {
+        if (cam != null)
+        {
+            float targetFOV = isFirstPerson ? firstPersonFOV : originalFOV;
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFOV, smoothSpeed * Time.deltaTime);
+        }
+    }
+
+    void HandleViewSwitch()
+    {
+        // 按下V键切换视角
+        if (Input.GetKeyDown(KeyCode.V))
+        {
+            ToggleViewMode();
+        }
+    }
+
+    void ToggleViewMode()
+    {
+        isFirstPerson = !isFirstPerson;
+        Debug.Log($"Switched to {(isFirstPerson ? "First Person" : "Third Person")} View");
+    }
+
+    // 供PlayerController调用的方法
     public void SetLookingBack(bool lookingBack)
     {
         isLookingBack = lookingBack;
+        // 保持当前视角模式，不自动切换
     }
 
-    void StartLookBack()
+    // 公开方法供其他脚本访问当前视角模式
+    public bool IsFirstPerson()
     {
-        isLookingBack = true;
-
-        // 通知Watcher停止
-        if (watcher != null)
-        {
-            WatcherAI watcherAI = watcher.GetComponent<WatcherAI>();
-            if (watcherAI != null)
-            {
-                watcherAI.OnPlayerLookedAt(true);
-            }
-        }
-
-        Debug.Log("Looking back at Watcher");
+        return isFirstPerson;
     }
 
-    void StopLookBack()
+    public bool IsLookingBackMode()
     {
-        isLookingBack = false;
-
-        // 通知Watcher继续追击
-        if (watcher != null)
-        {
-            WatcherAI watcherAI = watcher.GetComponent<WatcherAI>();
-            if (watcherAI != null)
-            {
-                watcherAI.OnPlayerLookedAt(false);
-            }
-        }
-
-        Debug.Log("Looking forward, resuming chase");
+        return isLookingBack;
     }
 }
