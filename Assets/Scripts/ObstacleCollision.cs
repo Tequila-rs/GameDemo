@@ -6,89 +6,152 @@ public class ObstacleCollision : MonoBehaviour
     public string gameOverMessage = "你撞到了障碍物！";
     public KeyCode restartKey = KeyCode.R;
 
+    [Header("调试")]
+    public bool showDebugInfo = true;
+    public bool enableCollision = true;
+
     private bool isGameOver = false;
     private Vector3 startPosition;
     private PlayerController playerController;
-    private WatcherAI watcher;
+    private CharacterController characterController;
+    private float gameStartTime;
 
     void Start()
     {
+        gameStartTime = Time.time;
         startPosition = transform.position;
         playerController = GetComponent<PlayerController>();
+        characterController = GetComponent<CharacterController>();
 
-        // 查找Watcher
-        GameObject watcherObj = GameObject.FindGameObjectWithTag("Watcher");
-        if (watcherObj != null)
+        if (showDebugInfo)
         {
-            watcher = watcherObj.GetComponent<WatcherAI>();
+            Debug.Log($"玩家起始位置: {startPosition}");
+            Debug.Log($"玩家碰撞体: {(characterController != null ? "存在" : "不存在")}");
+            Debug.Log($"玩家控制器: {(playerController != null ? "存在" : "不存在")}");
+        }
+    }
+
+    void Update()
+    {
+        if (isGameOver && Input.GetKeyDown(restartKey))
+        {
+            RestartGame();
+        }
+
+        if (!isGameOver && enableCollision && characterController != null)
+        {
+            SimpleForwardCheck();
+        }
+    }
+
+    void SimpleForwardCheck()
+    {
+        if (!showDebugInfo) return;
+
+        // 向前发射射线检测障碍物
+        Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+        float rayDistance = characterController.radius + 0.5f;
+
+        if (Physics.Raycast(rayOrigin, transform.forward, out RaycastHit hit, rayDistance))
+        {
+            if (hit.collider.CompareTag("Obstacle") || hit.collider.CompareTag("Trap"))
+            {
+                Debug.Log($"射线检测到前方障碍物: {hit.collider.name}, 距离: {hit.distance:F2}, 标签: {hit.collider.tag}");
+            }
         }
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        // 检查是否碰撞到障碍物
-        if (hit.gameObject.CompareTag("Obstacle") && !isGameOver)
+        if (!enableCollision || isGameOver) return;
+
+        if (Time.time - gameStartTime < 0.3f) return;
+
+        if (hit.gameObject.CompareTag("Obstacle") || hit.gameObject.CompareTag("Trap"))
         {
+            if (showDebugInfo)
+            {
+                Debug.Log($"控制器碰撞检测到: {hit.gameObject.name}, 标签: {hit.gameObject.tag}");
+            }
             TriggerGameOver();
         }
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // 处理触发器碰撞（如果需要）
-        if (other.CompareTag("Obstacle") && !isGameOver)
+        if (!enableCollision || isGameOver) return;
+
+        if (Time.time - gameStartTime < 0.3f)
         {
+            if (showDebugInfo)
+            {
+                Debug.Log($"忽略初始触发器: {other.name}");
+            }
+            return;
+        }
+
+        if (other.CompareTag("Obstacle") || other.CompareTag("Trap"))
+        {
+            if (showDebugInfo)
+            {
+                Debug.Log($"触发器进入检测到: {other.name}, 标签: {other.tag}");
+                Debug.Log($"玩家位置: {transform.position}, 陷阱位置: {other.transform.position}");
+                Debug.Log($"距离: {Vector3.Distance(transform.position, other.transform.position):F2}");
+            }
             TriggerGameOver();
         }
     }
 
-    void TriggerGameOver()
+    // 公共方法，供陷阱调用
+    public void TriggerGameOver()
     {
+        if (isGameOver) return;
+
         isGameOver = true;
 
-        Debug.Log("GAME OVER - " + gameOverMessage);
+        if (showDebugInfo)
+        {
+            Debug.Log($"GAME OVER - {gameOverMessage} (游戏时间: {Time.time - gameStartTime:F2}秒)");
+        }
 
-        // 暂停游戏
         Time.timeScale = 0;
 
-        // 禁用玩家移动
         if (playerController != null)
         {
             playerController.SetMovementEnabled(false);
         }
 
-        // 停止Watcher
+        WatcherAI watcher = FindObjectOfType<WatcherAI>();
         if (watcher != null)
         {
             watcher.OnPlayerLookedAt(true);
         }
 
         Debug.Log("=== GAME OVER ===");
-        Debug.Log("你撞到了障碍物！");
         Debug.Log("按 R 键重新开始游戏");
     }
 
-    void RestartGame()
+    public void RestartGame()
     {
+        Debug.Log("重新开始游戏...");
+
         isGameOver = false;
         Time.timeScale = 1;
+        gameStartTime = Time.time;
 
-        // 重置玩家位置
         transform.position = startPosition;
         transform.rotation = Quaternion.identity;
 
-        // 重新启用玩家移动
         if (playerController != null)
         {
             playerController.SetMovementEnabled(true);
         }
 
-        // 重置Watcher
+        WatcherAI watcher = FindObjectOfType<WatcherAI>();
         if (watcher != null)
         {
             watcher.OnPlayerLookedAt(false);
 
-            // 调用Watcher的RestartGame方法（如果存在）
             var restartMethod = watcher.GetType().GetMethod("RestartGame");
             if (restartMethod != null)
             {
@@ -96,48 +159,53 @@ public class ObstacleCollision : MonoBehaviour
             }
         }
 
-        Debug.Log("游戏重新开始");
+        Debug.Log("游戏已重新开始");
     }
 
     void OnGUI()
     {
         if (isGameOver)
         {
-            // 显示游戏结束界面
-            GUIStyle gameOverStyle = new GUIStyle(GUI.skin.label);
-            gameOverStyle.alignment = TextAnchor.MiddleCenter;
-            gameOverStyle.fontSize = 24;
-            gameOverStyle.normal.textColor = Color.red;
-
-            GUIStyle messageStyle = new GUIStyle(GUI.skin.label);
-            messageStyle.alignment = TextAnchor.MiddleCenter;
-            messageStyle.fontSize = 16;
-            messageStyle.normal.textColor = Color.white;
-
-            // 半透明背景
+            GUI.color = new Color(0, 0, 0, 0.7f);
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.color = Color.white;
 
-            // 游戏结束文字
-            GUI.Label(new Rect(0, Screen.height / 2 - 60, Screen.width, 40), "游戏结束", gameOverStyle);
-            GUI.Label(new Rect(0, Screen.height / 2 - 20, Screen.width, 40), gameOverMessage, messageStyle);
-            GUI.Label(new Rect(0, Screen.height / 2 + 20, Screen.width, 40), "按 R 键重新开始", messageStyle);
+            GUIStyle style = new GUIStyle(GUI.skin.label);
+            style.alignment = TextAnchor.MiddleCenter;
+            style.normal.textColor = Color.white;
 
-            // 检测重新开始按键
-            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == restartKey)
-            {
-                RestartGame();
-            }
+            style.fontSize = 30;
+            style.fontStyle = FontStyle.Bold;
+            GUI.Label(new Rect(0, Screen.height / 2 - 60, Screen.width, 50), "游戏结束", style);
+
+            style.fontSize = 20;
+            style.fontStyle = FontStyle.Normal;
+            GUI.Label(new Rect(0, Screen.height / 2 - 10, Screen.width, 40), gameOverMessage, style);
+
+            style.fontSize = 16;
+            style.normal.textColor = Color.yellow;
+            GUI.Label(new Rect(0, Screen.height / 2 + 30, Screen.width, 40), "按 R 键重新开始", style);
         }
     }
 
-    // 调试用：在Scene视图中显示起始位置
-    void OnDrawGizmosSelected()
+    void OnDrawGizmos()
     {
+        if (!showDebugInfo || characterController == null) return;
+
+        // 绘制检测射线
+        Gizmos.color = Color.blue;
+        Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+        float rayDistance = characterController.radius + 0.5f;
+        Gizmos.DrawLine(rayOrigin, rayOrigin + transform.forward * rayDistance);
+
+        // 绘制Character Controller范围
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position + characterController.center, characterController.radius);
+
         if (Application.isPlaying)
         {
             Gizmos.color = Color.green;
             Gizmos.DrawWireCube(startPosition, new Vector3(1, 2, 1));
-            Gizmos.DrawIcon(startPosition, "PlayerStart");
         }
     }
 }
