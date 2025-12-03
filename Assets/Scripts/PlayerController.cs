@@ -20,9 +20,9 @@ public class PlayerController : MonoBehaviour
     public float cameraSmoothness = 8f;
 
     [Header("Look Back Cooldown Settings")]
-    public float lookBackCooldown = 10f; // 冷却时间
-    public int maxLookBackCharges = 1; // 最大储存次数
-    private int currentLookBackCharges = 1; // 当前剩余次数
+    public float lookBackCooldown = 8f; // 冷却时间
+    public int maxLookBackCharges = 2; // 最大储存次数
+    private int currentLookBackCharges = 2; // 当前剩余次数
     private bool isOnCooldown = false; // 是否在冷却中
     private float currentCooldownTime = 0f; // 当前冷却剩余时间
 
@@ -420,7 +420,7 @@ public class PlayerController : MonoBehaviour
         largeStyle.fontStyle = FontStyle.Bold;
 
         // 根据剩余次数设置颜色
-        Color textColor = currentLookBackCharges > 0 ? Color.black : Color.red;
+        Color textColor = currentLookBackCharges > 0 ? Color.green : Color.red;
         largeStyle.normal.textColor = textColor;
 
         GUI.Label(new Rect(10, 100, 400, 30), $"回头次数: {currentLookBackCharges}/{maxLookBackCharges}", largeStyle);
