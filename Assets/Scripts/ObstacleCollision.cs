@@ -64,16 +64,31 @@ public class ObstacleCollision : MonoBehaviour
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (!enableCollision || isGameOver) return;
-
         if (Time.time - gameStartTime < 0.3f) return;
 
         if (hit.gameObject.CompareTag("Obstacle") || hit.gameObject.CompareTag("Trap"))
         {
-            if (showDebugInfo)
+            // 优先使用新的生命值系统
+            PlayerHealth playerHealth = GetComponent<PlayerHealth>();
+            if (playerHealth != null && playerHealth.IsAlive())
             {
-                Debug.Log($"控制器碰撞检测到: {hit.gameObject.name}, 标签: {hit.gameObject.tag}");
+                if (showDebugInfo)
+                {
+                    Debug.Log($"障碍物碰撞: {hit.gameObject.name}, 造成30点伤害");
+                }
+
+                // 障碍物碰撞造成伤害
+                playerHealth.TakeDamage(30f);
             }
-            TriggerGameOver();
+            else
+            {
+                // 备用方案：旧的游戏结束逻辑（只在没有生命值系统时使用）
+                if (showDebugInfo)
+                {
+                    Debug.Log($"控制器碰撞检测到: {hit.gameObject.name}，触发游戏结束");
+                }
+                TriggerGameOver();
+            }
         }
     }
 
@@ -92,13 +107,27 @@ public class ObstacleCollision : MonoBehaviour
 
         if (other.CompareTag("Obstacle") || other.CompareTag("Trap"))
         {
-            if (showDebugInfo)
+            // 优先使用新的生命值系统
+            PlayerHealth playerHealth = GetComponent<PlayerHealth>();
+            if (playerHealth != null && playerHealth.IsAlive())
             {
-                Debug.Log($"触发器进入检测到: {other.name}, 标签: {other.tag}");
-                Debug.Log($"玩家位置: {transform.position}, 陷阱位置: {other.transform.position}");
-                Debug.Log($"距离: {Vector3.Distance(transform.position, other.transform.position):F2}");
+                if (showDebugInfo)
+                {
+                    Debug.Log($"触发器进入: {other.name}，造成25点伤害");
+                }
+
+                // 触发器碰撞造成伤害
+                playerHealth.TakeDamage(25f);
             }
-            TriggerGameOver();
+            else
+            {
+                // 备用方案
+                if (showDebugInfo)
+                {
+                    Debug.Log($"触发器进入检测到: {other.name}");
+                }
+                TriggerGameOver();
+            }
         }
     }
 

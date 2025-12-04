@@ -124,7 +124,7 @@ public class PlayerController : MonoBehaviour
                 isOnCooldown = false;
                 currentCooldownTime = 0f;
 
-                // 如果次数未满，继续冷却（直到存满2次）
+                // 如果次数未满，继续冷却
                 if (currentLookBackCharges < maxLookBackCharges)
                 {
                     StartCooldown();
@@ -450,6 +450,24 @@ public class PlayerController : MonoBehaviour
             largeStyle.normal.textColor = Color.green;
             GUI.Label(new Rect(10, 140, 400, 30), "冷却时间: 可用", largeStyle);
         }
+
+        // 添加生命值显示
+        GUIStyle healthStyle = new GUIStyle(GUI.skin.label);
+        healthStyle.fontSize = 24;
+        healthStyle.fontStyle = FontStyle.Bold;
+
+        // 显示生命值（临时，正式使用UI血条后可删除）
+        /*PlayerHealth playerHealth = GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            float healthPercent = playerHealth.GetHealthPercentage();
+            healthStyle.normal.textColor = healthPercent > 0.5f ? Color.green :
+                                         healthPercent > 0.3f ? Color.yellow : Color.red;
+
+            GUI.Label(new Rect(Screen.width - 250, 100, 240, 30),
+                     $"生命值: {playerHealth.currentHealth:F0}/{playerHealth.maxHealth:F0}",
+                     healthStyle);
+        }*/
     }
 
     public void SetMovementEnabled(bool enabled)

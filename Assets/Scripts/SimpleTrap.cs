@@ -5,7 +5,8 @@ public class SimpleTrap : MonoBehaviour
     [Header("陷阱设置")]
     public bool isActive = true;
     public float damageDelay = 0f;
-    public float triggerCooldown = 2f; // 触发冷却时间
+    public float triggerCooldown = 2f;
+    public float trapDamage = 20f; // 新增：陷阱伤害值
 
     [Header("视觉效果")]
     public GameObject[] spikeMeshes;
@@ -143,30 +144,30 @@ public class SimpleTrap : MonoBehaviour
         // 弹出刺
         spikeProgress = 0f;
 
-        // 立即对玩家造成伤害
-        DamagePlayer();
+        // 对玩家造成伤害（只调用一次，不触发游戏结束）
+        ApplyDamageToPlayer();
     }
 
-    void DamagePlayer()
+    void ApplyDamageToPlayer()
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            ObstacleCollision obstacleCollision = player.GetComponent<ObstacleCollision>();
-            if (obstacleCollision != null)
+            // 只使用PlayerHealth组件造成伤害
+            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
             {
-                // 直接调用方法，不使用SendMessage
                 if (showDebugInfo)
                 {
-                    Debug.Log($"调用玩家 {player.name} 的 TriggerGameOver 方法");
+                    Debug.Log($"对玩家造成 {trapDamage} 点伤害");
                 }
 
-                // 使用Invoke调用，确保正确执行
-                obstacleCollision.Invoke("TriggerGameOver", 0f);
+                // 对玩家造成伤害
+                playerHealth.TakeDamage(trapDamage);
             }
             else
             {
-                Debug.LogError($"玩家对象 {player.name} 上没有找到 ObstacleCollision 组件！");
+                Debug.LogWarning("玩家没有PlayerHealth组件，陷阱伤害无法生效");
             }
         }
         else
