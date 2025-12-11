@@ -8,13 +8,12 @@ public class WatcherAI : MonoBehaviour
     public float baseSpeed = 5.0f;
     public float accelerationRate = 0.5f;
     public float maxSpeed = 10.0f;
-    public float minDistance = 2f; // 新增：捕捉距离
+    public float minDistance = 2f;
 
     private Transform player;
     private float currentSpeed;
     private bool isHalted = false;
     private Vector3 startPosition;
-    private CharacterController controller; // 新增：使用CharacterController
 
     void Start()
     {
@@ -22,14 +21,15 @@ public class WatcherAI : MonoBehaviour
         currentSpeed = baseSpeed;
         startPosition = transform.position;
 
-        // 新增：获取或添加CharacterController
-        controller = GetComponent<CharacterController>();
-        if (controller == null)
-        {
-            controller = gameObject.AddComponent<CharacterController>();
-            controller.center = new Vector3(0, 1, 0);
-            controller.height = 2;
-        }
+        // 直接设置正确的高度位置
+        float groundY = -1.5f;
+        float watcherHeight = 2.0f; // Transform Scale Y = 1.5
+        float targetY = groundY + (watcherHeight * 0.5f); // 模型中心的高度
+
+        // 调整位置
+        Vector3 pos = transform.position;
+        pos.y = targetY;
+        transform.position = pos;
 
         if (player == null)
         {
@@ -47,28 +47,39 @@ public class WatcherAI : MonoBehaviour
             Accelerate();
         }
 
-        CheckCatchPlayer(); // 新增：检查是否抓到玩家
+        CheckCatchPlayer();
+
+        // 强制保持在地面上
+        float groundY = -1.5f;
+        float watcherHeight = 2.0f;
+        float minY = groundY + (watcherHeight * 0.5f);
+
+        if (transform.position.y < minY)
+        {
+            Vector3 pos = transform.position;
+            pos.y = minY;
+            transform.position = pos;
+        }
     }
 
     void ChasePlayer()
     {
         // 始终面向玩家
-        transform.LookAt(player.position);
+        transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
 
-        // 修改：使用CharacterController移动
+        // 直接使用Transform移动，不要任何物理组件
         Vector3 direction = (player.position - transform.position).normalized;
-        Vector3 moveDirection = direction * currentSpeed * Time.deltaTime;
-        controller.Move(moveDirection);
+        direction.y = 0; // 确保不会向上/下移动
+
+        transform.position += direction * currentSpeed * Time.deltaTime;
     }
 
     void Accelerate()
     {
-        // 随时间加速，但有上限
         currentSpeed += accelerationRate * Time.deltaTime;
         currentSpeed = Mathf.Min(currentSpeed, maxSpeed);
     }
 
-    // 新增：距离检测抓取
     void CheckCatchPlayer()
     {
         if (player == null) return;
@@ -76,7 +87,7 @@ public class WatcherAI : MonoBehaviour
         float distance = Vector3.Distance(transform.position, player.position);
         if (distance <= minDistance)
         {
-            OnTriggerEnter(null); // 触发游戏结束
+            OnTriggerEnter(null);
         }
     }
 
@@ -86,13 +97,11 @@ public class WatcherAI : MonoBehaviour
 
         if (lookedAt)
         {
-            // 被注视时立即停止并重置速度
-            currentSpeed = 0f; // 修改：速度设为0，完全停止
+            currentSpeed = 0f;
             Debug.Log("Watcher HALTED");
         }
         else
         {
-            // 恢复注视时从基础速度开始
             currentSpeed = baseSpeed;
             Debug.Log("Watcher CHASING");
         }
@@ -100,21 +109,15 @@ public class WatcherAI : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        // 修改：支持距离检测和碰撞检测
         if (other == null || other.CompareTag("Player"))
         {
             Debug.Log("GAME OVER - You were caught by the Watcher!");
-
-            // 简单游戏结束处理
-            Time.timeScale = 0; // 暂停游戏
-
-            // 在Console和屏幕上显示游戏结束信息
+            Time.timeScale = 0;
             Debug.Log("=== GAME OVER ===");
             Debug.Log("Press R to restart");
         }
     }
 
-    // 调试显示
     void OnGUI()
     {
         if (Time.timeScale == 0)
@@ -128,25 +131,32 @@ public class WatcherAI : MonoBehaviour
             }
         }
 
-        // 显示状态信息
         GUI.Label(new Rect(10, 10, 300, 20), $"Watcher State: {(isHalted ? "STOPPED" : "CHASING")}");
         GUI.Label(new Rect(10, 30, 300, 20), $"Watcher Speed: {currentSpeed:F1}");
-        GUI.Label(new Rect(10, 50, 300, 20), "Controls: Auto Run | A/D: Turn | SPACE: Look Back");
+        GUI.Label(new Rect(10, 50, 300, 20), $"Y Position: {transform.position.y:F2}");
+        GUI.Label(new Rect(10, 70, 300, 20), "Controls: Auto Run | A/D: Turn | SPACE: Look Back");
     }
 
     void RestartGame()
     {
         Time.timeScale = 1;
-        // 重置位置
-        transform.position = startPosition;
+
+        // 重置位置到正确的高度
+        float groundY = -1.5f;
+        float watcherHeight = 2.0f;
+        float targetY = groundY + (watcherHeight * 0.5f);
+
+        Vector3 newPos = startPosition;
+        newPos.y = targetY;
+        transform.position = newPos;
+
         currentSpeed = baseSpeed;
         isHalted = false;
 
-        // 重置玩家位置
         if (player != null)
         {
             player.position = new Vector3(0, 1, 0);
-            player.rotation = Quaternion.identity; // 重置旋转
+            player.rotation = Quaternion.identity;
         }
     }
 }
