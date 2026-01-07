@@ -4655,9 +4655,9 @@ GameObject:
   - component: {fileID: 529052836}
   - component: {fileID: 529052835}
   - component: {fileID: 529052834}
-  - component: {fileID: 529052841}
-  - component: {fileID: 529052839}
   - component: {fileID: 529052840}
+  - component: {fileID: 529052839}
+  - component: {fileID: 529052838}
   m_Layer: 0
   m_Name: Watcher
   m_TagString: Watcher
@@ -4754,27 +4754,7 @@ Transform:
   - {fileID: 733651788}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &529052839
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 529052833}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d8bd8ff97a756b42a559e1037f7e86b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  baseSpeed: 5
-  accelerationRate: 0.3
-  maxSpeed: 12
-  minDistance: 2
-  pathRecordInterval: 0.5
-  maxPathPoints: 100
-  pathFollowSmoothTime: 0.1
-  directPursuitRange: 10
---- !u!82 &529052840
+--- !u!82 &529052838
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4870,7 +4850,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &529052841
+--- !u!114 &529052839
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4890,6 +4870,25 @@ MonoBehaviour:
   fadeSpeed: 3
   showDebugInfo: 0
   isPlaying: 0
+--- !u!114 &529052840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 529052833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8bd8ff97a756b42a559e1037f7e86b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseSpeed: 5
+  accelerationRate: 0.5
+  maxSpeed: 10
+  minDistance: 2
+  player: {fileID: 0}
+  currentSpeed: 0
+  isHalted: 0
 --- !u!1 &542140971
 GameObject:
   m_ObjectHideFlags: 0
