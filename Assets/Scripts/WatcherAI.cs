@@ -18,11 +18,20 @@ public class WatcherAI : MonoBehaviour
     private Vector3 startPosition;
     private WatcherFootsteps footstepsComponent; // 添加引用
 
+    // 玩家引用
+    private PlayerController playerController;
+
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
         currentSpeed = baseSpeed;
         startPosition = transform.position;
+
+        // 获取玩家控制器
+        if (player != null)
+        {
+            playerController = player.GetComponent<PlayerController>();
+        }
 
         // 直接设置正确的高度位置
         float groundY = -1.5f;
@@ -57,6 +66,14 @@ public class WatcherAI : MonoBehaviour
     void Update()
     {
         if (player == null) return;
+
+        // 如果游戏已经结束（胜利或失败），不进行追击
+        if (playerController != null && (playerController.IsGameOver() || playerController.IsVictory()))
+        {
+            isHalted = true;
+            currentSpeed = 0f;
+            return;
+        }
 
         if (!isHalted)
         {
@@ -151,6 +168,12 @@ public class WatcherAI : MonoBehaviour
     {
         Debug.Log("GAME OVER - You were caught by the Watcher!");
 
+        // 通知玩家控制器游戏结束
+        if (playerController != null)
+        {
+            playerController.TriggerGameOver();
+        }
+
         // 重要：先停止声音，再暂停时间
         // 停止Watcher的脚步声
         if (footstepsComponent != null)
@@ -164,6 +187,12 @@ public class WatcherAI : MonoBehaviour
         {
             BackgroundMusicManager.Instance.OnGameOver();
             Debug.Log("游戏结束：背景音乐已停止");
+        }
+
+        // 通知UIManager显示失败界面
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowGameOverScreen();
         }
 
         // 最后暂停时间

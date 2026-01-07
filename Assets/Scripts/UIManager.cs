@@ -9,6 +9,7 @@ public class UIManager : MonoBehaviour
     public int largeFontSize = 24;
     public int hintFontSize = 16;
     public int victoryFontSize = 48;
+    public int gameOverFontSize = 48;
     public Color healthColor = Color.red;
     public Color chargeColor = Color.green;
     public Color noChargeColor = Color.red;
@@ -17,6 +18,7 @@ public class UIManager : MonoBehaviour
     public Color readyColor = Color.green;
     public Color hintColor = Color.yellow;
     public Color victoryColor = new Color(1f, 0.8f, 0f, 1f); // 金色
+    public Color gameOverColor = new Color(1f, 0.2f, 0.2f, 1f); // 红色
     public Color restartButtonColor = new Color(0.2f, 0.6f, 1f, 1f); // 蓝色
     public Color quitButtonColor = new Color(1f, 0.3f, 0.3f, 1f); // 红色
 
@@ -32,6 +34,7 @@ public class UIManager : MonoBehaviour
     private GUIStyle largeStyle;
     private GUIStyle hintStyle;
     private GUIStyle victoryStyle;
+    private GUIStyle gameOverStyle;
     private GUIStyle buttonStyle;
 
     // 特效提示
@@ -41,10 +44,14 @@ public class UIManager : MonoBehaviour
     private float speedBoostRemainingTime = 0f;
     private float speedBoostTotalTime = 0f;
 
-    // 胜利界面
+    // 游戏状态界面
     private bool showVictoryScreen = false;
-    private float victoryScreenAlpha = 0f;
-    private float victoryFadeSpeed = 2f;
+    private bool showGameOverScreen = false;
+    private float screenAlpha = 0f;
+    private float fadeSpeed = 2f;
+    private string currentScreenText = "";
+    private string currentSubtitleText = "";
+    private Color currentScreenColor;
 
     // 单例
     public static UIManager Instance { get; private set; }
@@ -98,6 +105,17 @@ public class UIManager : MonoBehaviour
         victoryStyle.alignment = TextAnchor.MiddleCenter;
         victoryStyle.normal.textColor = victoryColor;
 
+        // 失败样式
+        gameOverStyle = new GUIStyle();
+        if (customGuiSkin != null && customGuiSkin.label != null)
+        {
+            gameOverStyle = new GUIStyle(customGuiSkin.label);
+        }
+        gameOverStyle.fontSize = gameOverFontSize;
+        gameOverStyle.fontStyle = FontStyle.Bold;
+        gameOverStyle.alignment = TextAnchor.MiddleCenter;
+        gameOverStyle.normal.textColor = gameOverColor;
+
         // 按钮样式
         buttonStyle = new GUIStyle();
         if (customGuiSkin != null && customGuiSkin.button != null)
@@ -117,15 +135,15 @@ public class UIManager : MonoBehaviour
             effectTipShowTimer -= Time.unscaledDeltaTime;
         }
 
-        // 胜利界面淡入效果
-        if (showVictoryScreen && victoryScreenAlpha < 1f)
+        // 界面淡入效果
+        if ((showVictoryScreen || showGameOverScreen) && screenAlpha < 1f)
         {
-            victoryScreenAlpha += victoryFadeSpeed * Time.unscaledDeltaTime;
-            victoryScreenAlpha = Mathf.Clamp01(victoryScreenAlpha);
+            screenAlpha += fadeSpeed * Time.unscaledDeltaTime;
+            screenAlpha = Mathf.Clamp01(screenAlpha);
         }
 
-        // 处理胜利界面的R键重启和ESC键退出
-        if (showVictoryScreen)
+        // 处理界面的R键重启和ESC键退出
+        if (showVictoryScreen || showGameOverScreen)
         {
             if (Input.GetKeyDown(KeyCode.R))
             {
@@ -159,7 +177,13 @@ public class UIManager : MonoBehaviour
         // 绘制胜利界面（覆盖在其他UI之上）
         if (showVictoryScreen)
         {
-            DrawVictoryScreen();
+            DrawGameStateScreen("恭喜！顺利通关！", "你成功逃脱了追捕！", victoryColor);
+        }
+
+        // 绘制失败界面（覆盖在其他UI之上）
+        if (showGameOverScreen)
+        {
+            DrawGameStateScreen("游戏失败", "你被追击者抓住了！", gameOverColor);
         }
     }
 
@@ -275,17 +299,25 @@ public class UIManager : MonoBehaviour
     }
     #endregion
 
-    #region 胜利界面
+    #region 游戏状态界面
     public void ShowVictoryScreen()
     {
         showVictoryScreen = true;
-        victoryScreenAlpha = 0f; // 从0开始淡入
+        showGameOverScreen = false;
+        screenAlpha = 0f; // 从0开始淡入
     }
 
-    private void DrawVictoryScreen()
+    public void ShowGameOverScreen()
+    {
+        showGameOverScreen = true;
+        showVictoryScreen = false;
+        screenAlpha = 0f; // 从0开始淡入
+    }
+
+    private void DrawGameStateScreen(string title, string subtitle, Color titleColor)
     {
         // 设置透明度
-        GUI.color = new Color(1, 1, 1, victoryScreenAlpha);
+        GUI.color = new Color(1, 1, 1, screenAlpha);
 
         // 绘制半透明黑色背景
         Texture2D blackTexture = new Texture2D(1, 1);
@@ -294,30 +326,30 @@ public class UIManager : MonoBehaviour
 
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), blackTexture);
 
-        // 胜利文字
-        victoryStyle.normal.textColor = Color.Lerp(new Color(victoryColor.r, victoryColor.g, victoryColor.b, 0),
-                                                   victoryColor, victoryScreenAlpha);
+        // 标题文字
+        GUIStyle titleStyle = showVictoryScreen ? victoryStyle : gameOverStyle;
+        titleStyle.normal.textColor = Color.Lerp(new Color(titleColor.r, titleColor.g, titleColor.b, 0),
+                                                   titleColor, screenAlpha);
 
-        string victoryText = "恭喜！顺利通关！";
-        Vector2 textSize = victoryStyle.CalcSize(new GUIContent(victoryText));
+        Vector2 textSize = titleStyle.CalcSize(new GUIContent(title));
         Rect textRect = new Rect(Screen.width / 2 - textSize.x / 2,
                                 Screen.height / 2 - 150,
                                 textSize.x, textSize.y);
 
-        GUI.Label(textRect, victoryText, victoryStyle);
+        GUI.Label(textRect, title, titleStyle);
 
         // 副标题
-        string subtitle = "你成功逃脱了追捕！";
-        GUIStyle subtitleStyle = new GUIStyle(victoryStyle);
+        string subtitleText = subtitle;
+        GUIStyle subtitleStyle = new GUIStyle(titleStyle);
         subtitleStyle.fontSize = 32;
-        subtitleStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), Color.white, victoryScreenAlpha);
+        subtitleStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), Color.white, screenAlpha);
 
-        Vector2 subtitleSize = subtitleStyle.CalcSize(new GUIContent(subtitle));
+        Vector2 subtitleSize = subtitleStyle.CalcSize(new GUIContent(subtitleText));
         Rect subtitleRect = new Rect(Screen.width / 2 - subtitleSize.x / 2,
                                     textRect.y + textSize.y + 20,
                                     subtitleSize.x, subtitleSize.y);
 
-        GUI.Label(subtitleRect, subtitle, subtitleStyle);
+        GUI.Label(subtitleRect, subtitleText, subtitleStyle);
 
         // 按钮组
         float buttonY = subtitleRect.y + subtitleSize.y + 80;
@@ -326,8 +358,8 @@ public class UIManager : MonoBehaviour
         float buttonSpacing = 30;
 
         // 重启按钮
-        buttonStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), Color.white, victoryScreenAlpha);
-        GUI.backgroundColor = restartButtonColor * victoryScreenAlpha;
+        buttonStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), Color.white, screenAlpha);
+        GUI.backgroundColor = restartButtonColor * screenAlpha;
 
         Rect restartButtonRect = new Rect(Screen.width / 2 - buttonWidth - buttonSpacing / 2,
                                          buttonY,
@@ -339,7 +371,7 @@ public class UIManager : MonoBehaviour
         }
 
         // 退出按钮
-        GUI.backgroundColor = quitButtonColor * victoryScreenAlpha;
+        GUI.backgroundColor = quitButtonColor * screenAlpha;
 
         Rect quitButtonRect = new Rect(Screen.width / 2 + buttonSpacing / 2,
                                       buttonY,
@@ -354,7 +386,7 @@ public class UIManager : MonoBehaviour
         string hint = "提示：按 R 键重新开始游戏，按 ESC 键退出游戏";
         GUIStyle hintStyle = new GUIStyle();
         hintStyle.fontSize = 20;
-        hintStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), new Color(1, 1, 1, 0.7f), victoryScreenAlpha);
+        hintStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), new Color(1, 1, 1, 0.7f), screenAlpha);
         hintStyle.alignment = TextAnchor.MiddleCenter;
 
         Vector2 hintSize = hintStyle.CalcSize(new GUIContent(hint));
@@ -374,9 +406,10 @@ public class UIManager : MonoBehaviour
         // 重置时间
         Time.timeScale = 1;
 
-        // 隐藏胜利界面
+        // 隐藏所有游戏状态界面
         showVictoryScreen = false;
-        victoryScreenAlpha = 0f;
+        showGameOverScreen = false;
+        screenAlpha = 0f;
 
         // 重置玩家状态
         PlayerController player = FindObjectOfType<PlayerController>();
