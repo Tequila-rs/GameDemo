@@ -2,13 +2,13 @@ using UnityEngine;
 
 public class HealPotion : Potion
 {
-    [Header("治疗药水特效")]
+    [Header("治疗药水效果")]
     public ParticleSystem healEffect;
 
-    // 内置简单的生命值逻辑（如果没有PlayerHealth组件也能生效）
+    // 通用的玩家加血逻辑（兼容有无PlayerHealth组件）
     private void HealPlayer(PlayerController player)
     {
-        // 尝试获取PlayerHealth组件
+        // 优先获取PlayerHealth组件
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         if (health != null)
         {
@@ -16,8 +16,8 @@ public class HealPotion : Potion
         }
         else
         {
-            // 如果没有PlayerHealth，直接在PlayerController中添加简单的生命值逻辑
-            Debug.LogWarning("未找到PlayerHealth组件，使用内置简单生命值逻辑");
+            // 备用方案：直接调用PlayerController的加血逻辑
+            Debug.LogWarning("未找到PlayerHealth组件，使用备用加血逻辑");
             player.GetComponent<PlayerController>().AddHealth(healAmount);
         }
     }
@@ -27,7 +27,13 @@ public class HealPotion : Potion
         if (player != null)
         {
             HealPlayer(player);
-            Debug.Log($"拾取绿色治疗药水！恢复{healAmount}点生命值");
+            Debug.Log($"角色获得治疗药水，恢复{healAmount}生命值");
+
+            // 显示加血提示
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ShowEffectTip($"获得治疗！+{healAmount}生命值", UIManager.Instance.healColor);
+            }
 
             // 播放特效（可选）
             if (healEffect != null)

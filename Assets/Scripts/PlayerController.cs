@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    // ===== 新增生命值相关 =====
+    // ===== 生命值设置 =====
     [Header("生命值设置")]
     public int maxHealth = 100;
     private int currentHealth;
@@ -15,8 +15,8 @@ public class PlayerController : MonoBehaviour
     public float jumpForce = 8f;
     public float gravity = -25f;
 
-    [Header("第一人称设置")] // 补全缺失的第一人称相关变量
-    public bool isFirstPerson = false; // 修复"当前上下文中不存在isFirstPerson"错误
+    [Header("第一人称设置")]
+    public bool isFirstPerson = false;
     public Vector3 firstPersonCameraOffset = new Vector3(0, 1.8f, 0.05f);
     public float cameraSmoothness = 8f;
 
@@ -27,10 +27,12 @@ public class PlayerController : MonoBehaviour
     private bool isOnCooldown = false;
     private float currentCooldownTime = 0f;
 
-    // 核心组件引用
+    // 组件引用
     private CharacterController controller;
     private Animator animator;
     private WatcherAI watcher;
+    private Camera mainCamera;
+    private SkinnedMeshRenderer playerMeshRenderer;
 
     // 状态变量
     private bool isLookingBack = false;
@@ -39,43 +41,40 @@ public class PlayerController : MonoBehaviour
     private Vector3 initialForward;
     private Vector3 initialRight;
 
-    // 移动相关
+    // 移动变量
     private Vector3 moveDirection;
     private float velocityY;
     private bool isGrounded;
-
-    // 动画相关
     private float currentSpeed;
+
+    // 动画参数
     private int speedParamHash;
     private int groundedParamHash;
     private int jumpParamHash;
     private int lookBackParamHash;
 
-    // 相机相关
-    private Camera mainCamera;
+    // 相机变量
     private Vector3 originalCameraPosition;
     private Quaternion originalCameraRotation;
     private Transform originalCameraParent;
 
-    // 回头旋转相关
+    // 回头旋转变量
     private Quaternion targetLookBackRotation;
     private Quaternion originalRotation;
-
-    // 渲染相关
-    private SkinnedMeshRenderer playerMeshRenderer;
 
     void Start()
     {
         // 初始化生命值
         currentHealth = maxHealth;
 
-        // 获取核心组件
+        // 获取组件引用
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
         mainCamera = Camera.main;
         watcher = FindObjectOfType<WatcherAI>();
+        playerMeshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
 
-        // 确保CharacterController启用（碰撞检测关键）
+        // 确保CharacterController可用
         if (controller != null)
         {
             controller.enabled = true;
@@ -83,14 +82,14 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("Player缺少CharacterController组件！碰撞检测将失效");
+            Debug.LogError("Player缺少CharacterController组件，移动系统会失效");
         }
 
         // 初始化方向向量
         initialForward = transform.forward;
         initialRight = transform.right;
 
-        // 保存相机初始状态
+        // 初始化相机状态
         if (mainCamera != null)
         {
             originalCameraParent = mainCamera.transform.parent;
@@ -98,31 +97,32 @@ public class PlayerController : MonoBehaviour
             originalCameraRotation = mainCamera.transform.localRotation;
         }
 
-        // 动画参数哈希（优化性能）
+        // 动画参数哈希
         speedParamHash = Animator.StringToHash("Speed");
         groundedParamHash = Animator.StringToHash("IsGrounded");
         jumpParamHash = Animator.StringToHash("Jump");
         lookBackParamHash = Animator.StringToHash("LookBack");
-
-        // 获取玩家模型渲染器
-        playerMeshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
 
         // 初始化回头次数
         currentLookBackCharges = maxLookBackCharges;
 
         // 动画组件检查
         if (animator == null)
-            Debug.LogWarning("缺少Animator组件！动画将无法工作。");
+            Debug.LogWarning("缺少Animator组件，动画系统无法工作");
+
+        // 初始化UI状态
+        UpdateAllUI();
     }
 
-    // ===== 新增：添加生命值方法（兼容治疗药水）=====
+    // ===== 生命值系统 =====
     public void AddHealth(int amount)
     {
         currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
-        Debug.Log($"生命值+{amount}，当前生命值: {currentHealth}/{maxHealth}");
+        Debug.Log($"生命值+{amount}, 当前: {currentHealth}/{maxHealth}");
+        UpdateHealthUI(); // 更新UI
     }
 
-    // ===== 速度提升方法 =====
+    // ===== 速度加成系统 =====
     public void StartSpeedBoost(float multiplier, float duration)
     {
         StartCoroutine(SpeedBoostCoroutine(multiplier, duration));
@@ -133,33 +133,44 @@ public class PlayerController : MonoBehaviour
         float originalRunSpeed = runSpeed;
         float originalSideSpeed = sideMoveSpeed;
 
-        // 应用速度倍率
+        // 提升速度
         runSpeed *= multiplier;
         sideMoveSpeed *= multiplier;
+        Debug.Log($"速度加成生效，原速度: {originalRunSpeed}, 新速度: {runSpeed}");
 
-        Debug.Log($"速度提升生效！原速度: {originalRunSpeed}, 新速度: {runSpeed}");
-
-        // 计时并显示剩余时间
+        // 加速期间持续更新倒计时UI
         float endTime = Time.time + duration;
         while (Time.time < endTime)
         {
+            float remainingTime = endTime - Time.time;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateSpeedBoostUI(true, remainingTime, duration);
+            }
             yield return null;
         }
 
-        // 恢复原速度
+        // 恢复原始速度
         runSpeed = originalRunSpeed;
         sideMoveSpeed = originalSideSpeed;
-        Debug.Log("速度提升效果结束，恢复原速度");
+
+        // 加速结束，更新UI
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateSpeedBoostUI(false, 0, duration);
+        }
+        Debug.Log("速度加成效果结束，恢复原速度");
     }
 
-    // ===== 回头次数增加方法 =====
+    // ===== 回头次数增加系统 =====
     public void AddLookbackCharge(int amount = 1)
     {
         currentLookBackCharges = Mathf.Min(currentLookBackCharges + amount, maxLookBackCharges);
-        Debug.Log($"回头次数+{amount}，当前: {currentLookBackCharges}/{maxLookBackCharges}");
+        Debug.Log($"回头次数+{amount}, 当前: {currentLookBackCharges}/{maxLookBackCharges}");
+        UpdateLookBackChargeUI(); // 更新UI
     }
 
-    // ===== 核心更新逻辑 =====
+    // ===== 核心循环逻辑 =====
     void Update()
     {
         HandleGroundCheck();
@@ -172,20 +183,22 @@ public class PlayerController : MonoBehaviour
         HandleLookBackRotation();
         UpdateCooldown();
         UpdateFirstPersonCamera();
+
+        // 实时同步UI状态
+        UpdateAllUI();
     }
 
     // ===== 地面检测 =====
     void HandleGroundCheck()
     {
         isGrounded = controller.isGrounded;
-
         if (isGrounded && velocityY < 0)
         {
-            velocityY = -2f; // 轻微的地面吸附
+            velocityY = -2f;
         }
     }
 
-    // ===== 移动处理 =====
+    // ===== 移动控制 =====
     void HandleMovement()
     {
         if (!isMovementEnabled)
@@ -194,34 +207,21 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // 自动向前移动
         Vector3 forwardMove = transform.forward * runSpeed;
-
-        // Q/E 左右侧移
         float horizontalInput = 0f;
         if (Input.GetKey(KeyCode.Q))
-        {
             horizontalInput = -1f;
-        }
         else if (Input.GetKey(KeyCode.E))
-        {
             horizontalInput = 1f;
-        }
 
         Vector3 sideMovement = initialRight * horizontalInput * sideMoveSpeed;
-
-        // 合并移动方向（仅水平）
         moveDirection = forwardMove + sideMovement;
         moveDirection.y = 0;
 
-        // 应用重力
         ApplyGravity();
-
-        // 最终移动向量（包含重力）
         Vector3 finalMove = moveDirection + Vector3.up * velocityY;
         controller.Move(finalMove * Time.deltaTime);
 
-        // 计算当前移动速度（仅水平）
         Vector3 horizontalVelocity = new Vector3(controller.velocity.x, 0, controller.velocity.z);
         currentSpeed = horizontalVelocity.magnitude;
     }
@@ -232,11 +232,10 @@ public class PlayerController : MonoBehaviour
         velocityY += gravity * Time.deltaTime;
     }
 
-    // ===== 跳跃处理 =====
+    // ===== 跳跃控制 =====
     void HandleJump()
     {
         if (!isMovementEnabled) return;
-
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             velocityY = Mathf.Sqrt(jumpForce * -2f * gravity);
@@ -245,21 +244,16 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ===== 转向处理（A/D）=====
+    // ===== 转向控制 =====
     void HandleTurning()
     {
         if (isLookingBack) return;
-
         if (canTurn)
         {
             if (Input.GetKeyDown(KeyCode.A))
-            {
                 StartCoroutine(TurnCoroutine(-rotationAngle));
-            }
             else if (Input.GetKeyDown(KeyCode.D))
-            {
                 StartCoroutine(TurnCoroutine(rotationAngle));
-            }
         }
     }
 
@@ -267,21 +261,15 @@ public class PlayerController : MonoBehaviour
     IEnumerator TurnCoroutine(float angle)
     {
         canTurn = false;
-
-        // 立即转向指定角度
         transform.Rotate(0, angle, 0);
-
-        // 更新初始方向向量
         Quaternion rotation = Quaternion.Euler(0, angle, 0);
         initialForward = rotation * initialForward;
         initialRight = rotation * initialRight;
-
-        // 转向冷却
         yield return new WaitForSeconds(0.2f);
         canTurn = true;
     }
 
-    // ===== 回头处理（空格）=====
+    // ===== 回头控制 =====
     void HandleLookBack()
     {
         if (Input.GetKeyDown(KeyCode.Space) && !isLookingBack && currentLookBackCharges > 0)
@@ -299,40 +287,28 @@ public class PlayerController : MonoBehaviour
     {
         isLookingBack = true;
         isMovementEnabled = false;
-
-        // 消耗回头次数
         currentLookBackCharges--;
 
-        // 启动冷却
         if (!isOnCooldown)
-        {
             StartCooldown();
-        }
 
-        // 保存初始旋转，目标旋转为180度
         originalRotation = transform.rotation;
         targetLookBackRotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
-        // 动画更新
         if (animator != null)
         {
             animator.SetBool(lookBackParamHash, true);
             animator.SetFloat(speedParamHash, 0f);
         }
 
-        // 相机旋转（第三人称）
         if (mainCamera != null && !isFirstPerson)
-        {
             mainCamera.transform.RotateAround(transform.position, Vector3.up, 180f);
-        }
 
-        // 通知Watcher停止追逐
         if (watcher != null)
-        {
             watcher.OnPlayerLookedAt(true);
-        }
 
         Debug.Log($"开始回头 - 剩余次数: {currentLookBackCharges}");
+        UpdateLookBackChargeUI(); // 更新UI
     }
 
     // ===== 停止回头 =====
@@ -340,96 +316,67 @@ public class PlayerController : MonoBehaviour
     {
         isLookingBack = false;
         isMovementEnabled = true;
-
-        // 恢复初始旋转
         transform.rotation = originalRotation;
 
-        // 动画更新
         if (animator != null)
             animator.SetBool(lookBackParamHash, false);
 
-        // 恢复相机位置（第三人称）
         if (mainCamera != null && !isFirstPerson)
         {
             mainCamera.transform.localPosition = originalCameraPosition;
             mainCamera.transform.localRotation = originalCameraRotation;
         }
 
-        // 通知Watcher继续追逐
         if (watcher != null)
-        {
             watcher.OnPlayerLookedAt(false);
-        }
     }
 
-    // ===== 回头旋转平滑过渡 =====
+    // ===== 回头旋转平滑 =====
     void HandleLookBackRotation()
     {
         if (isLookingBack)
         {
             transform.rotation = Quaternion.Lerp(transform.rotation, targetLookBackRotation, 3f * Time.deltaTime);
-
             if (animator != null)
-            {
                 animator.SetFloat(speedParamHash, 0f);
-            }
         }
     }
 
-    // ===== 第一人称切换（V键）=====
+    // ===== 第一人称切换 =====
     void HandleFirstPersonToggle()
     {
         if (Input.GetKeyDown(KeyCode.V))
-        {
             ToggleFirstPerson();
-        }
     }
 
-    // ===== 切换第一/第三人称 =====
     void ToggleFirstPerson()
     {
         isFirstPerson = !isFirstPerson;
-
         if (isFirstPerson)
-        {
             EnterFirstPerson();
-        }
         else
-        {
             ExitFirstPerson();
-        }
     }
 
-    // ===== 进入第一人称 =====
     void EnterFirstPerson()
     {
-        // 隐藏玩家模型
         if (playerMeshRenderer != null)
             playerMeshRenderer.enabled = false;
 
-        // 如果正在回头，停止回头
         if (isLookingBack)
-        {
             StopLookBack();
-        }
 
-        // 相机脱离父物体，跟随玩家
         if (mainCamera != null)
-        {
             mainCamera.transform.SetParent(null);
-        }
 
         Debug.Log("切换到第一人称视角");
     }
 
-    // ===== 退出第一人称 =====
     void ExitFirstPerson()
     {
-        // 显示玩家模型
         if (playerMeshRenderer != null)
             playerMeshRenderer.enabled = true;
 
-        // 恢复相机初始状态
         if (mainCamera != null)
         {
             mainCamera.transform.SetParent(originalCameraParent);
@@ -440,15 +387,13 @@ public class PlayerController : MonoBehaviour
         Debug.Log("切换回第三人称视角");
     }
 
-    // ===== 更新第一人称相机位置 =====
+    // ===== 更新第一人称相机 =====
     void UpdateFirstPersonCamera()
     {
         if (isFirstPerson && mainCamera != null)
         {
             Vector3 targetPosition = transform.position + transform.TransformDirection(firstPersonCameraOffset);
             Quaternion targetRotation = transform.rotation;
-
-            // 平滑过渡相机位置和旋转
             mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, cameraSmoothness * Time.deltaTime);
             mainCamera.transform.rotation = Quaternion.Lerp(mainCamera.transform.rotation, targetRotation, cameraSmoothness * Time.deltaTime);
         }
@@ -458,7 +403,6 @@ public class PlayerController : MonoBehaviour
     void UpdateAnimations()
     {
         if (animator == null) return;
-
         animator.SetFloat(speedParamHash, currentSpeed, 0.1f, Time.deltaTime);
         animator.SetBool(groundedParamHash, isGrounded);
     }
@@ -469,84 +413,64 @@ public class PlayerController : MonoBehaviour
         if (isOnCooldown)
         {
             currentCooldownTime -= Time.deltaTime;
-
             if (currentCooldownTime <= 0)
             {
-                // 冷却结束，恢复一次回头次数
                 currentLookBackCharges++;
                 isOnCooldown = false;
                 currentCooldownTime = 0f;
 
-                // 如果还有次数未恢复，继续冷却
                 if (currentLookBackCharges < maxLookBackCharges)
-                {
                     StartCooldown();
-                }
+
+                UpdateLookBackChargeUI(); // 更新UI
             }
         }
     }
 
-    // ===== 启动冷却 =====
+    // ===== 开始冷却 =====
     void StartCooldown()
     {
         isOnCooldown = true;
         currentCooldownTime = lookBackCooldown;
     }
 
-    // ===== GUI显示（生命值、回头次数、操作说明）=====
-    void OnGUI()
+    // ===== UI更新接口（同步到UIManager）=====
+    /// <summary>
+    /// 更新所有UI状态
+    /// </summary>
+    private void UpdateAllUI()
     {
-        GUIStyle largeStyle = new GUIStyle(GUI.skin.label);
-        largeStyle.fontSize = 24;
-        largeStyle.fontStyle = FontStyle.Bold;
-
-        // 显示生命值
-        largeStyle.normal.textColor = Color.red;
-        GUI.Label(new Rect(10, 20, 400, 30), $"生命值: {currentHealth}/{maxHealth}", largeStyle);
-
-        // 显示回头次数
-        Color textColor = currentLookBackCharges > 0 ? Color.green : Color.red;
-        largeStyle.normal.textColor = textColor;
-        GUI.Label(new Rect(10, 60, 400, 30), $"回头次数: {currentLookBackCharges}/{maxLookBackCharges}", largeStyle);
-
-        // 显示冷却状态
-        if (isOnCooldown)
-        {
-            float progress = 1 - (currentCooldownTime / lookBackCooldown);
-            Rect progressBarBg = new Rect(10, 100, 200, 25);
-            Rect progressBarFill = new Rect(10, 100, 200 * progress, 25);
-
-            // 冷却进度条背景
-            GUI.backgroundColor = Color.gray;
-            GUI.Box(progressBarBg, GUIContent.none);
-
-            // 冷却进度条填充
-            GUI.backgroundColor = Color.blue;
-            GUI.Box(progressBarFill, GUIContent.none);
-
-            // 冷却时间文本
-            largeStyle.normal.textColor = Color.white;
-            GUI.Label(new Rect(10, 130, 400, 30), $"冷却中: {currentCooldownTime:F1}s", largeStyle);
-        }
-        else
-        {
-            largeStyle.normal.textColor = Color.green;
-            GUI.Label(new Rect(10, 100, 400, 30), "冷却就绪", largeStyle);
-        }
-
-        // 操作说明
-        GUIStyle hintStyle = new GUIStyle(GUI.skin.label);
-        hintStyle.fontSize = 16;
-        hintStyle.normal.textColor = Color.yellow;
-
-        string controls = "操作说明:\n" +
-                         "自动前进 | A/D: 转向 | 空格: 回头\n" +
-                         "V: 切换视角 | 触碰药水获得效果";
-
-        GUI.Label(new Rect(10, 160, 300, 100), controls, hintStyle);
+        if (UIManager.Instance == null) return;
+        UpdateHealthUI();
+        UpdateLookBackChargeUI();
+        UpdateCoolDownUI();
     }
 
-    // ===== 公共方法 =====
+    /// <summary>
+    /// 更新生命值UI
+    /// </summary>
+    private void UpdateHealthUI()
+    {
+        UIManager.Instance?.UpdateHealthUI(currentHealth, maxHealth);
+    }
+
+    /// <summary>
+    /// 更新回头次数UI
+    /// </summary>
+    private void UpdateLookBackChargeUI()
+    {
+        UIManager.Instance?.UpdateLookBackChargeUI(currentLookBackCharges, maxLookBackCharges);
+    }
+
+    /// <summary>
+    /// 更新冷却状态UI
+    /// </summary>
+    private void UpdateCoolDownUI()
+    {
+        UIManager.Instance?.UpdateCoolDownUI(isOnCooldown, currentCooldownTime, lookBackCooldown);
+    }
+
+    // ===== 外部接口 =====
     public void SetMovementEnabled(bool enabled)
     {
         isMovementEnabled = enabled;
@@ -557,12 +481,11 @@ public class PlayerController : MonoBehaviour
         return isLookingBack;
     }
 
-    // ===== Gizmos调试 =====
+    // ===== Gizmos绘制 =====
     void OnDrawGizmos()
     {
         if (Application.isPlaying && isFirstPerson)
         {
-            // 第一人称相机位置调试
             Gizmos.color = Color.red;
             Vector3 cameraPos = transform.position + transform.TransformDirection(firstPersonCameraOffset);
             Gizmos.DrawWireSphere(cameraPos, 0.1f);
@@ -572,7 +495,6 @@ public class PlayerController : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        // CharacterController碰撞范围调试
         if (controller != null)
         {
             Gizmos.color = Color.green;

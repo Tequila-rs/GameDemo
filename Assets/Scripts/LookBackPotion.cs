@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class LookBackPotion : Potion
 {
-    [Header("回头药水特效")]
+    [Header("回头药水效果")]
     public ParticleSystem chargeEffect;
 
     protected override void ApplyEffect(PlayerController player)
@@ -10,7 +10,13 @@ public class LookBackPotion : Potion
         if (player != null)
         {
             player.AddLookbackCharge(lookBackCharges);
-            Debug.Log($"拾取红色回头药水！增加{lookBackCharges}次回头机会");
+            Debug.Log($"角色获得回头药水，增加{lookBackCharges}次回头次数");
+
+            // 显示增加回头次数提示
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ShowEffectTip($"获得回头次数！+{lookBackCharges}次", UIManager.Instance.lookBackChargeColor);
+            }
 
             // 播放特效（可选）
             if (chargeEffect != null)
