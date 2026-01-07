@@ -74,7 +74,6 @@ public class PlayerHealth : MonoBehaviour
     }
 
     // 受到伤害
-    // 受到伤害
     public void TakeDamage(float damageAmount)
     {
         if (isDead || !canTakeDamage)
@@ -83,7 +82,7 @@ public class PlayerHealth : MonoBehaviour
             return;
         }
 
-        // 应用伤害（删除重复的扣血代码）
+        // 应用伤害
         currentHealth -= damageAmount;
         lastDamageTime = Time.time;
         canTakeDamage = false;
@@ -217,12 +216,12 @@ public class PlayerHealth : MonoBehaviour
 
         Debug.Log("玩家死亡！");
 
-        // 3秒后重启游戏
-        Invoke("RestartGame", 3f);
+        // 注：不再使用Invoke，由ObstacleCollision统一处理R键重新开始
+        // Invoke("RestartGame", 3f);
     }
 
-    // 重启游戏
-    void RestartGame()
+    // 重启游戏（供外部调用）
+    public void RestartGame()
     {
         Time.timeScale = 1f;
 
@@ -243,31 +242,9 @@ public class PlayerHealth : MonoBehaviour
             playerController.SetMovementEnabled(true);
         }
 
-        // 重置Watcher
-        WatcherAI watcher = FindObjectOfType<WatcherAI>();
-        if (watcher != null)
-        {
-            watcher.OnPlayerLookedAt(false);
-
-            // 调用Watcher的RestartGame方法
-            var restartMethod = watcher.GetType().GetMethod("RestartGame");
-            if (restartMethod != null)
-            {
-                restartMethod.Invoke(watcher, null);
-            }
-        }
-
-        // 重置玩家位置
-        ObstacleCollision obstacleCollision = GetComponent<ObstacleCollision>();
-        if (obstacleCollision != null)
-        {
-            // 调用RestartGame方法
-            obstacleCollision.SendMessage("RestartGame", SendMessageOptions.DontRequireReceiver);
-        }
-
         UpdateHealthUI();
 
-        Debug.Log("游戏重新开始");
+        Debug.Log("玩家生命值已重置");
     }
 
     // 检查是否存活

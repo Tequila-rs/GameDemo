@@ -2,38 +2,50 @@ using UnityEngine;
 
 public class ObstacleCollision : MonoBehaviour
 {
-    [Header("游戏失败设置")]
-    public string gameOverMessage = "你撞到了障碍物！";
+    [Header("碰撞触发设置")]
+    public string gameOverMessage = "你被鬼抓住了！";
     public KeyCode restartKey = KeyCode.R;
+
+    [Header("起点设置")]
+    public Vector3 restartPosition = new Vector3(0, 1, -4.19f); // 根据你的Transform设置
+    public Quaternion restartRotation = Quaternion.identity;
 
     [Header("调试")]
     public bool showDebugInfo = true;
     public bool enableCollision = true;
 
     private bool isGameOver = false;
-    private Vector3 startPosition;
-    private PlayerController playerController;
     private CharacterController characterController;
+    private PlayerController playerController;
     private float gameStartTime;
 
     void Start()
     {
         gameStartTime = Time.time;
-        startPosition = transform.position;
         playerController = GetComponent<PlayerController>();
         characterController = GetComponent<CharacterController>();
 
+        // 在Start时记录当前位置作为起点（只记录一次）
+        if (!HasCustomRestartPosition())
+        {
+            restartPosition = transform.position;
+            restartRotation = transform.rotation;
+            Debug.Log($"自动记录起点位置: {restartPosition}");
+        }
+
         if (showDebugInfo)
         {
-            Debug.Log($"玩家起始位置: {startPosition}");
-            Debug.Log($"玩家碰撞体: {(characterController != null ? "存在" : "不存在")}");
-            Debug.Log($"玩家控制器: {(playerController != null ? "存在" : "不存在")}");
+            Debug.Log($"玩家起始位置: {restartPosition}");
+            Debug.Log($"玩家旋转: {restartRotation.eulerAngles}");
+            Debug.Log($"玩家控制器: {(characterController != null ? "存在" : "不存在")}");
+            Debug.Log($"玩家控制脚本: {(playerController != null ? "存在" : "不存在")}");
         }
     }
 
     void Update()
     {
-        if (isGameOver && Input.GetKeyDown(restartKey))
+        // 统一处理R键重新开始（无论游戏是否结束）
+        if (Input.GetKeyDown(restartKey))
         {
             RestartGame();
         }
@@ -48,7 +60,7 @@ public class ObstacleCollision : MonoBehaviour
     {
         if (!showDebugInfo) return;
 
-        // 向前发射射线检测障碍物
+        // 简单的向前射线检测碰撞
         Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
         float rayDistance = characterController.radius + 0.5f;
 
@@ -56,7 +68,7 @@ public class ObstacleCollision : MonoBehaviour
         {
             if (hit.collider.CompareTag("Obstacle") || hit.collider.CompareTag("Trap"))
             {
-                Debug.Log($"射线检测到前方障碍物: {hit.collider.name}, 距离: {hit.distance:F2}, 标签: {hit.collider.tag}");
+                Debug.Log($"射线检测到前方障碍: {hit.collider.name}, 距离: {hit.distance:F2}, 标签: {hit.collider.tag}");
             }
         }
     }
@@ -68,21 +80,21 @@ public class ObstacleCollision : MonoBehaviour
 
         if (hit.gameObject.CompareTag("Obstacle") || hit.gameObject.CompareTag("Trap"))
         {
-            // 优先使用新的生命值系统
+            // 优先使用玩家的生命值系统
             PlayerHealth playerHealth = GetComponent<PlayerHealth>();
             if (playerHealth != null && playerHealth.IsAlive())
             {
                 if (showDebugInfo)
                 {
-                    Debug.Log($"障碍物碰撞: {hit.gameObject.name}, 造成30点伤害");
+                    Debug.Log($"控制器碰撞: {hit.gameObject.name}, 受到30点伤害");
                 }
 
-                // 障碍物碰撞造成伤害
+                // 控制器碰撞受到伤害
                 playerHealth.TakeDamage(30f);
             }
             else
             {
-                // 备用方案：旧的游戏结束逻辑（只在没有生命值系统时使用）
+                // 备用：当没有生命值系统时使用
                 if (showDebugInfo)
                 {
                     Debug.Log($"控制器碰撞检测到: {hit.gameObject.name}，触发游戏结束");
@@ -100,28 +112,28 @@ public class ObstacleCollision : MonoBehaviour
         {
             if (showDebugInfo)
             {
-                Debug.Log($"忽略初始触发器: {other.name}");
+                Debug.Log($"游戏开始后跳过碰撞: {other.name}");
             }
             return;
         }
 
         if (other.CompareTag("Obstacle") || other.CompareTag("Trap"))
         {
-            // 优先使用新的生命值系统
+            // 优先使用玩家的生命值系统
             PlayerHealth playerHealth = GetComponent<PlayerHealth>();
             if (playerHealth != null && playerHealth.IsAlive())
             {
                 if (showDebugInfo)
                 {
-                    Debug.Log($"触发器进入: {other.name}，造成25点伤害");
+                    Debug.Log($"触发器进入: {other.name}，受到25点伤害");
                 }
 
-                // 触发器碰撞造成伤害
+                // 触发器碰撞受到伤害
                 playerHealth.TakeDamage(25f);
             }
             else
             {
-                // 备用方案
+                // 备用
                 if (showDebugInfo)
                 {
                     Debug.Log($"触发器进入检测到: {other.name}");
@@ -131,7 +143,7 @@ public class ObstacleCollision : MonoBehaviour
         }
     }
 
-    // 公共方法，供陷阱调用
+    // 公开方法，确保其他脚本可以调用
     public void TriggerGameOver()
     {
         if (isGameOver) return;
@@ -140,7 +152,7 @@ public class ObstacleCollision : MonoBehaviour
 
         if (showDebugInfo)
         {
-            Debug.Log($"GAME OVER - {gameOverMessage} (游戏时间: {Time.time - gameStartTime:F2}秒)");
+            Debug.Log($"GAME OVER - {gameOverMessage} (游戏时长: {Time.time - gameStartTime:F2}秒)");
         }
 
         Time.timeScale = 0;
@@ -168,27 +180,101 @@ public class ObstacleCollision : MonoBehaviour
         Time.timeScale = 1;
         gameStartTime = Time.time;
 
-        transform.position = startPosition;
-        transform.rotation = Quaternion.identity;
-
-        if (playerController != null)
+        // 关键修复：先禁用CharacterController，再设置位置
+        if (characterController != null)
         {
-            playerController.SetMovementEnabled(true);
+            characterController.enabled = false;
+            Debug.Log("已禁用CharacterController");
         }
 
+        // 重置玩家位置到预设的起点
+        Vector3 targetPosition = restartPosition;
+        Quaternion targetRotation = restartRotation;
+
+        Debug.Log($"正在重置玩家到: {targetPosition}, 旋转: {targetRotation.eulerAngles}");
+
+        transform.position = targetPosition;
+        transform.rotation = targetRotation;
+
+        // 重新启用CharacterController
+        if (characterController != null)
+        {
+            characterController.enabled = true;
+            Debug.Log("已启用CharacterController");
+        }
+
+        // 重置玩家生命值（如果存在）
+        PlayerHealth playerHealth = GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            playerHealth.RestartGame();
+        }
+
+        // 重置玩家的回头次数
+        if (playerController != null)
+        {
+            // 通过反射重置回头次数
+            var lookbackField = typeof(PlayerController).GetField("currentLookBackCharges",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var maxLookbackField = typeof(PlayerController).GetField("maxLookBackCharges",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+
+            if (lookbackField != null && maxLookbackField != null)
+            {
+                int maxCharges = (int)maxLookbackField.GetValue(playerController);
+                lookbackField.SetValue(playerController, maxCharges);
+                Debug.Log($"重置回头次数: {maxCharges}/{maxCharges}");
+            }
+
+            playerController.SetMovementEnabled(true);
+            Debug.Log("已启用玩家移动");
+        }
+
+        // 重置Watcher
         WatcherAI watcher = FindObjectOfType<WatcherAI>();
         if (watcher != null)
         {
             watcher.OnPlayerLookedAt(false);
-
-            var restartMethod = watcher.GetType().GetMethod("RestartGame");
-            if (restartMethod != null)
-            {
-                restartMethod.Invoke(watcher, null);
-            }
+            watcher.RestartGame();
+            Debug.Log("已重置Watcher");
         }
 
-        Debug.Log("游戏已重新开始");
+        // 重新开始背景音乐
+        if (BackgroundMusicManager.Instance != null)
+        {
+            BackgroundMusicManager.Instance.OnGameRestart();
+            Debug.Log("已重新开始背景音乐");
+        }
+
+        Debug.Log($"玩家已成功重置到起点: {targetPosition}");
+
+        // 确保玩家完全重置
+        StartCoroutine(EnsurePlayerReset());
+    }
+
+    private System.Collections.IEnumerator EnsurePlayerReset()
+    {
+        yield return new WaitForSeconds(0.1f);
+
+        // 再次检查位置
+        Debug.Log($"重置后确认位置: {transform.position}, 期望位置: {restartPosition}");
+
+        // 如果位置不对，强制修正
+        if (Vector3.Distance(transform.position, restartPosition) > 0.5f)
+        {
+            Debug.LogWarning("玩家位置未正确重置，强制修正...");
+            if (characterController != null) characterController.enabled = false;
+            transform.position = restartPosition;
+            transform.rotation = restartRotation;
+            if (characterController != null) characterController.enabled = true;
+        }
+    }
+
+    // 检查是否设置了自定义起点位置
+    private bool HasCustomRestartPosition()
+    {
+        // 如果restartPosition不是默认值，说明在Inspector中设置了自定义值
+        return restartPosition != new Vector3(0, 1, 0);
     }
 
     void OnGUI()
@@ -219,22 +305,31 @@ public class ObstacleCollision : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if (!showDebugInfo || characterController == null) return;
+        if (!showDebugInfo) return;
 
-        // 绘制检测射线
-        Gizmos.color = Color.blue;
-        Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
-        float rayDistance = characterController.radius + 0.5f;
-        Gizmos.DrawLine(rayOrigin, rayOrigin + transform.forward * rayDistance);
-
-        // 绘制Character Controller范围
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position + characterController.center, characterController.radius);
-
-        if (Application.isPlaying)
+        // 绘制射线检测
+        if (characterController != null)
         {
+            Gizmos.color = Color.blue;
+            Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+            float rayDistance = characterController.radius + 0.5f;
+            Gizmos.DrawLine(rayOrigin, rayOrigin + transform.forward * rayDistance);
+
+            // 绘制Character Controller范围
             Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(startPosition, new Vector3(1, 2, 1));
+            Gizmos.DrawWireSphere(transform.position + characterController.center, characterController.radius);
         }
+
+        // 绘制重新开始位置
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireCube(restartPosition, new Vector3(1, 2, 1));
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(restartPosition, restartPosition + Vector3.forward * 2);
+
+        // 显示文本
+#if UNITY_EDITOR
+        UnityEditor.Handles.Label(restartPosition + Vector3.up * 2,
+            $"重新开始位置\nX:{restartPosition.x:F2}\nY:{restartPosition.y:F2}\nZ:{restartPosition.z:F2}");
+#endif
     }
 }
