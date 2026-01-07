@@ -243,6 +243,10 @@ public class ObstacleCollision : MonoBehaviour
             Debug.Log("已重新开始背景音乐");
         }
 
+        // 新增：重置所有药水
+        Potion.ResetAllPotions();
+        Debug.Log("已重置所有药水");
+
         Debug.Log($"玩家已成功重置到起点: {targetPosition}");
 
         // 确保玩家完全重置

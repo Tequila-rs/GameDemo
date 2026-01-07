@@ -533,6 +533,9 @@ public class PlayerController : MonoBehaviour
         // 更新UI
         UpdateAllUI();
 
+        // 新增：重置药水（确保胜利重新开始时也能重置）
+        Potion.ResetAllPotions();
+
         Debug.Log("玩家游戏状态已完全重置");
     }
 
