@@ -181,8 +181,8 @@ public class WatcherAI : MonoBehaviour
     {
         if (Time.timeScale == 0)
         {
-            GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2 - 25, 200, 50),
-                     "GAME OVER\nYou were caught!\nPress R to restart");
+            //GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2 - 25, 200, 50),
+            //         "GAME OVER\nYou were caught!\nPress R to restart");
 
             if (Input.GetKeyDown(KeyCode.R))
             {
@@ -190,24 +190,24 @@ public class WatcherAI : MonoBehaviour
             }
         }
 
-        GUI.Label(new Rect(10, 10, 300, 20), $"Watcher State: {(isHalted ? "STOPPED" : "CHASING")}");
-        GUI.Label(new Rect(10, 30, 300, 20), $"Watcher Speed: {currentSpeed:F1}");
-        GUI.Label(new Rect(10, 50, 300, 20), $"Y Position: {transform.position.y:F2}");
+        //GUI.Label(new Rect(10, 10, 300, 20), $"Watcher State: {(isHalted ? "STOPPED" : "CHASING")}");
+        //GUI.Label(new Rect(10, 30, 300, 20), $"Watcher Speed: {currentSpeed:F1}");
+        //GUI.Label(new Rect(10, 50, 300, 20), $"Y Position: {transform.position.y:F2}");
 
         // 添加距离信息
         if (player != null)
         {
             float distance = Vector3.Distance(transform.position, player.position);
-            GUI.Label(new Rect(10, 70, 300, 20), $"Distance to Player: {distance:F1}m");
+            //GUI.Label(new Rect(10, 70, 300, 20), $"Distance to Player: {distance:F1}m");
         }
 
         // 添加声音状态信息
         if (footstepsComponent != null)
         {
-            GUI.Label(new Rect(10, 90, 300, 20), $"Watcher Sound: {(footstepsComponent.isPlaying ? "ON" : "OFF")}");
+            //GUI.Label(new Rect(10, 90, 300, 20), $"Watcher Sound: {(footstepsComponent.isPlaying ? "ON" : "OFF")}");
         }
 
-        GUI.Label(new Rect(10, 110, 300, 40), "Controls: Auto Run | A/D: Turn | SPACE: Look Back");
+        //GUI.Label(new Rect(10, 110, 300, 40), "Controls: Auto Run | A/D: Turn | SPACE: Look Back");
     }
 
     void RestartGame()

@@ -10,6 +10,9 @@ public class ChocolateSlowingArea : MonoBehaviour
     public ParticleSystem meltingParticles; // 融化粒子效果
     public Material meltedMaterial; // 融化后的材质
 
+    [Header("UI提示")]
+    public Color slowMessageColor = new Color(1f, 1f, 1f); // 提示文字颜色
+
     private float originalRunSpeed;
     private float originalSideSpeed;
     private PlayerController player;
@@ -53,7 +56,10 @@ public class ChocolateSlowingArea : MonoBehaviour
                 // 触发视觉效果
                 StartMeltingEffect();
 
-                Debug.Log($"进入巧克力区域，速度减至 {slowFactor * 100}%");
+                // 显示减速提示
+                ShowSlowMessage();
+
+                Debug.Log($"进入区域，速度减至 {slowFactor * 100}%");
             }
         }
     }
@@ -71,7 +77,10 @@ public class ChocolateSlowingArea : MonoBehaviour
             // 停止视觉效果
             StopMeltingEffect();
 
-            Debug.Log("离开巧克力区域，速度恢复");
+            // 显示恢复速度提示
+            ShowRecoveryMessage();
+
+            Debug.Log("离开区域，速度恢复");
         }
     }
 
@@ -105,6 +114,32 @@ public class ChocolateSlowingArea : MonoBehaviour
         }
     }
 
+    // 显示减速提示（模仿HealPotion的实现方式）
+    void ShowSlowMessage()
+    {
+        // 计算减速百分比
+        float slowPercentage = (1 - slowFactor) * 100;
+        string message = $"减速区域！速度-{slowPercentage:F0}%";
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowEffectTip(message, slowMessageColor);
+        }
+        else
+        {
+            Debug.LogWarning("UIManager.Instance 为空，无法显示减速提示");
+        }
+    }
+
+    // 显示恢复速度提示
+    void ShowRecoveryMessage()
+    {
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowEffectTip("离开减速区域，速度恢复", Color.green);
+        }
+    }
+
     void OnDestroy()
     {
         // 确保玩家离开时恢复速度
@@ -112,6 +147,12 @@ public class ChocolateSlowingArea : MonoBehaviour
         {
             player.runSpeed = originalRunSpeed;
             player.sideMoveSpeed = originalSideSpeed;
+
+            // 如果UI管理器存在，显示恢复提示
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ShowEffectTip("区域消失，速度恢复", Color.green);
+            }
         }
     }
 }

@@ -459,18 +459,18 @@ public class BackgroundMusicManager : MonoBehaviour
             string dynamicInfo = enableDynamicVolume ?
                 $"∂ØÃ¨“Ù¡ø: {dynamicVolumeModifier:F2} ({currentDynamicVolume:F2})" : "∂ØÃ¨“Ù¡ø: πÿ±’";
 
-            GUI.Label(new Rect(Screen.width - 250, 150, 250, 30),
-                     $"±≥æ∞“Ù¿÷: {(audioSource.isPlaying ? "≤•∑≈÷–" : "Õ£÷π")}");
-            GUI.Label(new Rect(Screen.width - 250, 170, 250, 30),
-                     $"“Ù¡ø: {audioSource.volume:F2} / {baseVolume:F2}");
-            GUI.Label(new Rect(Screen.width - 250, 190, 250, 30),
-                     dynamicInfo);
+            //GUI.Label(new Rect(Screen.width - 250, 150, 250, 30),
+            //         $"±≥æ∞“Ù¿÷: {(audioSource.isPlaying ? "≤•∑≈÷–" : "Õ£÷π")}");
+            //GUI.Label(new Rect(Screen.width - 250, 170, 250, 30),
+            //         $"“Ù¡ø: {audioSource.volume:F2} / {baseVolume:F2}");
+            //GUI.Label(new Rect(Screen.width - 250, 190, 250, 30),
+            //         dynamicInfo);
 
             if (watcher != null && player != null)
             {
                 float distance = Vector3.Distance(watcher.transform.position, player.position);
-                GUI.Label(new Rect(Screen.width - 250, 210, 250, 30),
-                         $"πÌæ‡¿Î: {distance:F1}m");
+                //GUI.Label(new Rect(Screen.width - 250, 210, 250, 30),
+                //         $"πÌæ‡¿Î: {distance:F1}m");
             }
         }
     }
