@@ -342,31 +342,8 @@ public class ObstacleCollision : MonoBehaviour
         return restartPosition != new Vector3(0, 1, 0);
     }
 
-    void OnGUI()
-    {
-        if (isGameOver)
-        {
-            GUI.color = new Color(0, 0, 0, 0.7f);
-            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
-            GUI.color = Color.white;
-
-            GUIStyle style = new GUIStyle(GUI.skin.label);
-            style.alignment = TextAnchor.MiddleCenter;
-            style.normal.textColor = Color.white;
-
-            style.fontSize = 30;
-            style.fontStyle = FontStyle.Bold;
-            GUI.Label(new Rect(0, Screen.height / 2 - 60, Screen.width, 50), "游戏结束", style);
-
-            style.fontSize = 20;
-            style.fontStyle = FontStyle.Normal;
-            GUI.Label(new Rect(0, Screen.height / 2 - 10, Screen.width, 40), gameOverMessage, style);
-
-            style.fontSize = 16;
-            style.normal.textColor = Color.yellow;
-            GUI.Label(new Rect(0, Screen.height / 2 + 30, Screen.width, 40), "按 R 键重新开始", style);
-        }
-    }
+    // 删除原来的OnGUI方法，因为它显示"你碰到了障碍物"的UI
+    // 这个UI已经不需要了，因为现在由UIManager统一管理游戏结束界面
 
     void OnDrawGizmos()
     {

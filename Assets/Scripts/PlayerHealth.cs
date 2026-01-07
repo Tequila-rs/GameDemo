@@ -191,7 +191,7 @@ public class PlayerHealth : MonoBehaviour
             audioSource.PlayOneShot(deathSound);
         }
 
-        // 显示死亡界面
+        // 显示死亡界面（如果存在）
         if (deathScreenUI != null)
         {
             deathScreenUI.SetActive(true);
@@ -214,10 +214,56 @@ public class PlayerHealth : MonoBehaviour
         // 停止游戏时间
         Time.timeScale = 0.3f; // 慢动作效果
 
-        Debug.Log("玩家死亡！");
+        Debug.Log("玩家生命值归零！触发游戏结束");
 
-        // 注：不再使用Invoke，由ObstacleCollision统一处理R键重新开始
-        // Invoke("RestartGame", 3f);
+        // 触发游戏结束逻辑
+        TriggerGameOver();
+    }
+
+    // 触发游戏结束（与WatcherAI的TriggerGameOver保持一致）
+    private void TriggerGameOver()
+    {
+        Debug.Log("GAME OVER - 生命值耗尽！");
+
+        // 通知玩家控制器游戏结束
+        PlayerController playerController = GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            playerController.TriggerGameOver();
+        }
+
+        // 重要：先停止声音，再暂停时间
+        // 停止Watcher的脚步声
+        WatcherAI watcher = FindObjectOfType<WatcherAI>();
+        if (watcher != null)
+        {
+            // 获取脚步组件并停止声音
+            WatcherFootsteps footstepsComponent = watcher.GetComponent<WatcherFootsteps>();
+            if (footstepsComponent != null)
+            {
+                footstepsComponent.StopImmediately();
+                Debug.Log("生命值耗尽：Watcher声音已立即停止");
+            }
+        }
+
+        // 停止背景音乐 - 使用立即停止
+        if (BackgroundMusicManager.Instance != null)
+        {
+            BackgroundMusicManager.Instance.OnGameOver();
+            Debug.Log("游戏结束：背景音乐已停止");
+        }
+
+        // 通知UIManager显示失败界面
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowGameOverScreen();
+        }
+
+        // 最后暂停时间（完全停止）
+        Time.timeScale = 0;
+
+        Debug.Log("=== GAME OVER（生命值耗尽）===");
+        Debug.Log("按 R 键重新开始游戏");
     }
 
     // 重启游戏（供外部调用）
