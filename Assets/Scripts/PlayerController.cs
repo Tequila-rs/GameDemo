@@ -55,6 +55,10 @@ public class PlayerController : MonoBehaviour
     private Quaternion targetLookBackRotation;
     private Quaternion originalRotation;
 
+    // 游戏状态
+    private bool isGameOver = false;
+    private bool isVictory = false;
+
     void Start()
     {
         // 初始化生命值
@@ -99,6 +103,10 @@ public class PlayerController : MonoBehaviour
 
         // 初始化UI状态
         UpdateAllUI();
+
+        // 初始化游戏状态
+        isGameOver = false;
+        isVictory = false;
     }
 
     // 隐藏玩家模型（第一人称视角）
@@ -180,6 +188,9 @@ public class PlayerController : MonoBehaviour
     // ===== 核心循环逻辑 =====
     void Update()
     {
+        // 如果游戏结束或胜利，不处理输入和移动
+        if (isGameOver || isVictory) return;
+
         HandleGroundCheck();
         HandleMovement();
         HandleLookBack();
@@ -206,7 +217,7 @@ public class PlayerController : MonoBehaviour
     // ===== 移动控制 =====
     void HandleMovement()
     {
-        if (!isMovementEnabled)
+        if (!isMovementEnabled || isVictory || isGameOver)
         {
             ApplyGravity();
             return;
@@ -240,7 +251,7 @@ public class PlayerController : MonoBehaviour
     // ===== 跳跃控制 =====
     void HandleJump()
     {
-        if (!isMovementEnabled) return;
+        if (!isMovementEnabled || isVictory || isGameOver) return;
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             velocityY = Mathf.Sqrt(jumpForce * -2f * gravity);
@@ -252,7 +263,7 @@ public class PlayerController : MonoBehaviour
     // ===== 转向控制 =====
     void HandleTurning()
     {
-        if (isLookingBack) return;
+        if (isLookingBack || isVictory || isGameOver) return;
         if (canTurn)
         {
             if (Input.GetKeyDown(KeyCode.A))
@@ -277,6 +288,8 @@ public class PlayerController : MonoBehaviour
     // ===== 回头控制 =====
     void HandleLookBack()
     {
+        if (isVictory || isGameOver) return;
+
         if (Input.GetKeyDown(KeyCode.Space) && !isLookingBack && currentLookBackCharges > 0)
         {
             StartLookBack();
@@ -452,15 +465,97 @@ public class PlayerController : MonoBehaviour
         Debug.Log("玩家方向系统已完全重置");
     }
 
+    // ===== 触发器检测（用于终点检测）=====
+    void OnTriggerEnter(Collider other)
+    {
+        if (isVictory || isGameOver) return;
+
+        // 检测Capsule终点
+        if (other.CompareTag("Finish"))
+        {
+            TriggerVictory();
+        }
+    }
+
+    // ===== 胜利触发 =====
+    void TriggerVictory()
+    {
+        isVictory = true;
+        isMovementEnabled = false;
+
+        Debug.Log("恭喜！顺利通关！");
+
+        // 通知UIManager显示胜利界面
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowVictoryScreen();
+        }
+
+        // 停止所有移动
+        currentSpeed = 0;
+
+        // 停止时间（但保留UI响应）
+        Time.timeScale = 0;
+
+        // 播放胜利音效（如果需要）
+        // if (AudioManager.Instance != null) AudioManager.Instance.PlayVictorySound();
+
+        Debug.Log("=== VICTORY ===");
+        Debug.Log("Press R to restart or ESC to quit");
+    }
+
+    // ===== 游戏结束处理 =====
+    public void TriggerGameOver()
+    {
+        isGameOver = true;
+        isMovementEnabled = false;
+    }
+
+    // ===== 重置游戏状态 =====
+    public void ResetGameState()
+    {
+        isGameOver = false;
+        isVictory = false;
+        isMovementEnabled = true;
+        Time.timeScale = 1;
+
+        // 重置生命值
+        currentHealth = maxHealth;
+
+        // 重置回头次数
+        currentLookBackCharges = maxLookBackCharges;
+        isOnCooldown = false;
+        currentCooldownTime = 0f;
+
+        // 重置方向系统
+        ResetDirectionSystem();
+
+        // 更新UI
+        UpdateAllUI();
+
+        Debug.Log("玩家游戏状态已完全重置");
+    }
+
     // ===== 外部接口 =====
     public void SetMovementEnabled(bool enabled)
     {
-        isMovementEnabled = enabled;
+        if (!isVictory && !isGameOver)
+            isMovementEnabled = enabled;
     }
 
     public bool IsLookingBack()
     {
         return isLookingBack;
+    }
+
+    public bool IsGameOver()
+    {
+        return isGameOver;
+    }
+
+    public bool IsVictory()
+    {
+        return isVictory;
     }
 
     // ===== 获取当前状态（供调试用）=====
@@ -471,7 +566,8 @@ public class PlayerController : MonoBehaviour
                $"可转向: {(canTurn ? "是" : "否")}, " +
                $"前向: {initialForward}, " +
                $"右向: {initialRight}, " +
-               $"回头次数: {currentLookBackCharges}/{maxLookBackCharges}";
+               $"回头次数: {currentLookBackCharges}/{maxLookBackCharges}, " +
+               $"游戏状态: {(isVictory ? "胜利" : isGameOver ? "失败" : "进行中")}";
     }
 
     // ===== Gizmos绘制 =====

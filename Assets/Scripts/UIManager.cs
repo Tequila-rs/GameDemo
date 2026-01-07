@@ -8,6 +8,7 @@ public class UIManager : MonoBehaviour
     public GUISkin customGuiSkin;
     public int largeFontSize = 24;
     public int hintFontSize = 16;
+    public int victoryFontSize = 48;
     public Color healthColor = Color.red;
     public Color chargeColor = Color.green;
     public Color noChargeColor = Color.red;
@@ -15,6 +16,9 @@ public class UIManager : MonoBehaviour
     public Color coolDownBgColor = Color.gray;
     public Color readyColor = Color.green;
     public Color hintColor = Color.yellow;
+    public Color victoryColor = new Color(1f, 0.8f, 0f, 1f); // 金色
+    public Color restartButtonColor = new Color(0.2f, 0.6f, 1f, 1f); // 蓝色
+    public Color quitButtonColor = new Color(1f, 0.3f, 0.3f, 1f); // 红色
 
     [Header("特效UI")]
     public Color speedBoostColor = Color.cyan;
@@ -27,6 +31,8 @@ public class UIManager : MonoBehaviour
     // UI样式
     private GUIStyle largeStyle;
     private GUIStyle hintStyle;
+    private GUIStyle victoryStyle;
+    private GUIStyle buttonStyle;
 
     // 特效提示
     private string currentEffectTip = "";
@@ -34,6 +40,11 @@ public class UIManager : MonoBehaviour
     private bool isSpeedBoostActive = false;
     private float speedBoostRemainingTime = 0f;
     private float speedBoostTotalTime = 0f;
+
+    // 胜利界面
+    private bool showVictoryScreen = false;
+    private float victoryScreenAlpha = 0f;
+    private float victoryFadeSpeed = 2f;
 
     // 单例
     public static UIManager Instance { get; private set; }
@@ -75,6 +86,56 @@ public class UIManager : MonoBehaviour
         hintStyle.alignment = TextAnchor.UpperLeft;
         hintStyle.wordWrap = true;
         hintStyle.padding = new RectOffset(10, 10, 5, 5);
+
+        // 胜利样式
+        victoryStyle = new GUIStyle();
+        if (customGuiSkin != null && customGuiSkin.label != null)
+        {
+            victoryStyle = new GUIStyle(customGuiSkin.label);
+        }
+        victoryStyle.fontSize = victoryFontSize;
+        victoryStyle.fontStyle = FontStyle.Bold;
+        victoryStyle.alignment = TextAnchor.MiddleCenter;
+        victoryStyle.normal.textColor = victoryColor;
+
+        // 按钮样式
+        buttonStyle = new GUIStyle();
+        if (customGuiSkin != null && customGuiSkin.button != null)
+        {
+            buttonStyle = new GUIStyle(customGuiSkin.button);
+        }
+        buttonStyle.fontSize = 28;
+        buttonStyle.fontStyle = FontStyle.Bold;
+        buttonStyle.alignment = TextAnchor.MiddleCenter;
+        buttonStyle.padding = new RectOffset(20, 20, 10, 10);
+    }
+
+    private void Update()
+    {
+        if (effectTipShowTimer > 0)
+        {
+            effectTipShowTimer -= Time.unscaledDeltaTime;
+        }
+
+        // 胜利界面淡入效果
+        if (showVictoryScreen && victoryScreenAlpha < 1f)
+        {
+            victoryScreenAlpha += victoryFadeSpeed * Time.unscaledDeltaTime;
+            victoryScreenAlpha = Mathf.Clamp01(victoryScreenAlpha);
+        }
+
+        // 处理胜利界面的R键重启和ESC键退出
+        if (showVictoryScreen)
+        {
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                RestartGame();
+            }
+            else if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                QuitGame();
+            }
+        }
     }
 
     private void OnGUI()
@@ -93,6 +154,12 @@ public class UIManager : MonoBehaviour
             DrawControlTipsUI();
             DrawEffectTipUI();
             DrawSpeedBoostCountdownUI();
+        }
+
+        // 绘制胜利界面（覆盖在其他UI之上）
+        if (showVictoryScreen)
+        {
+            DrawVictoryScreen();
         }
     }
 
@@ -208,11 +275,141 @@ public class UIManager : MonoBehaviour
     }
     #endregion
 
-    private void Update()
+    #region 胜利界面
+    public void ShowVictoryScreen()
     {
-        if (effectTipShowTimer > 0)
-        {
-            effectTipShowTimer -= Time.deltaTime;
-        }
+        showVictoryScreen = true;
+        victoryScreenAlpha = 0f; // 从0开始淡入
     }
+
+    private void DrawVictoryScreen()
+    {
+        // 设置透明度
+        GUI.color = new Color(1, 1, 1, victoryScreenAlpha);
+
+        // 绘制半透明黑色背景
+        Texture2D blackTexture = new Texture2D(1, 1);
+        blackTexture.SetPixel(0, 0, new Color(0, 0, 0, 0.8f));
+        blackTexture.Apply();
+
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), blackTexture);
+
+        // 胜利文字
+        victoryStyle.normal.textColor = Color.Lerp(new Color(victoryColor.r, victoryColor.g, victoryColor.b, 0),
+                                                   victoryColor, victoryScreenAlpha);
+
+        string victoryText = "恭喜！顺利通关！";
+        Vector2 textSize = victoryStyle.CalcSize(new GUIContent(victoryText));
+        Rect textRect = new Rect(Screen.width / 2 - textSize.x / 2,
+                                Screen.height / 2 - 150,
+                                textSize.x, textSize.y);
+
+        GUI.Label(textRect, victoryText, victoryStyle);
+
+        // 副标题
+        string subtitle = "你成功逃脱了追捕！";
+        GUIStyle subtitleStyle = new GUIStyle(victoryStyle);
+        subtitleStyle.fontSize = 32;
+        subtitleStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), Color.white, victoryScreenAlpha);
+
+        Vector2 subtitleSize = subtitleStyle.CalcSize(new GUIContent(subtitle));
+        Rect subtitleRect = new Rect(Screen.width / 2 - subtitleSize.x / 2,
+                                    textRect.y + textSize.y + 20,
+                                    subtitleSize.x, subtitleSize.y);
+
+        GUI.Label(subtitleRect, subtitle, subtitleStyle);
+
+        // 按钮组
+        float buttonY = subtitleRect.y + subtitleSize.y + 80;
+        float buttonWidth = 200;
+        float buttonHeight = 60;
+        float buttonSpacing = 30;
+
+        // 重启按钮
+        buttonStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), Color.white, victoryScreenAlpha);
+        GUI.backgroundColor = restartButtonColor * victoryScreenAlpha;
+
+        Rect restartButtonRect = new Rect(Screen.width / 2 - buttonWidth - buttonSpacing / 2,
+                                         buttonY,
+                                         buttonWidth, buttonHeight);
+
+        if (GUI.Button(restartButtonRect, "重新开始 (R)", buttonStyle))
+        {
+            RestartGame();
+        }
+
+        // 退出按钮
+        GUI.backgroundColor = quitButtonColor * victoryScreenAlpha;
+
+        Rect quitButtonRect = new Rect(Screen.width / 2 + buttonSpacing / 2,
+                                      buttonY,
+                                      buttonWidth, buttonHeight);
+
+        if (GUI.Button(quitButtonRect, "退出游戏 (ESC)", buttonStyle))
+        {
+            QuitGame();
+        }
+
+        // 操作提示
+        string hint = "提示：按 R 键重新开始游戏，按 ESC 键退出游戏";
+        GUIStyle hintStyle = new GUIStyle();
+        hintStyle.fontSize = 20;
+        hintStyle.normal.textColor = Color.Lerp(new Color(1, 1, 1, 0), new Color(1, 1, 1, 0.7f), victoryScreenAlpha);
+        hintStyle.alignment = TextAnchor.MiddleCenter;
+
+        Vector2 hintSize = hintStyle.CalcSize(new GUIContent(hint));
+        Rect hintRect = new Rect(Screen.width / 2 - hintSize.x / 2,
+                                buttonY + buttonHeight + 30,
+                                hintSize.x, hintSize.y);
+
+        GUI.Label(hintRect, hint, hintStyle);
+
+        // 重置颜色
+        GUI.color = Color.white;
+        GUI.backgroundColor = Color.white;
+    }
+
+    private void RestartGame()
+    {
+        // 重置时间
+        Time.timeScale = 1;
+
+        // 隐藏胜利界面
+        showVictoryScreen = false;
+        victoryScreenAlpha = 0f;
+
+        // 重置玩家状态
+        PlayerController player = FindObjectOfType<PlayerController>();
+        if (player != null)
+        {
+            player.ResetGameState();
+        }
+
+        // 重置Watcher状态
+        WatcherAI watcher = FindObjectOfType<WatcherAI>();
+        if (watcher != null)
+        {
+            watcher.RestartGame();
+        }
+
+        // 重置ObstacleCollision状态
+        ObstacleCollision obstacleCollision = FindObjectOfType<ObstacleCollision>();
+        if (obstacleCollision != null)
+        {
+            obstacleCollision.RestartGame();
+        }
+
+        Debug.Log("游戏已重新开始");
+    }
+
+    private void QuitGame()
+    {
+        // 在编辑器中停止运行，在构建版本中退出应用
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+    }
+    #endregion
 }
