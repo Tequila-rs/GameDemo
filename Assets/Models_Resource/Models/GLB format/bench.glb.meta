@@ -1,5 +1,10 @@
 fileFormatVersion: 2
+<<<<<<<< Updated upstream:Assets/Models_Resource/Models/GLB format/bench.glb.meta
 guid: 3c6aa207db38c3047a1d1128e23e2907
+========
+guid: 8e7e8f5a82a3a134e91c54efd2274ea9
+folderAsset: yes
+>>>>>>>> Stashed changes:Assets/TextMesh Pro/Documentation.meta
 DefaultImporter:
   externalObjects: {}
   userData: 
