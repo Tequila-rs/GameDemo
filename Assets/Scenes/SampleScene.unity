@@ -4787,7 +4787,7 @@ MonoBehaviour:
   accelerationRate: 0.3
   maxSpeed: 12
   minDistance: 2
-  pathRecordInterval: 0.2
+  pathRecordInterval: 0.5
   maxPathPoints: 100
   pathFollowSmoothTime: 0.1
   directPursuitRange: 10
