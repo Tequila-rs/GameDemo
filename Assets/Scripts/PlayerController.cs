@@ -16,7 +16,6 @@ public class PlayerController : MonoBehaviour
     public float gravity = -25f;
 
     [Header("第一人称设置")]
-    public bool isFirstPerson = false;
     public Vector3 firstPersonCameraOffset = new Vector3(0, 1.8f, 0.05f);
     public float cameraSmoothness = 8f;
 
@@ -32,7 +31,6 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
     private WatcherAI watcher;
     private Camera mainCamera;
-    private SkinnedMeshRenderer playerMeshRenderer;
 
     // 状态变量
     private bool isLookingBack = false;
@@ -53,11 +51,6 @@ public class PlayerController : MonoBehaviour
     private int jumpParamHash;
     private int lookBackParamHash;
 
-    // 相机变量
-    private Vector3 originalCameraPosition;
-    private Quaternion originalCameraRotation;
-    private Transform originalCameraParent;
-
     // 回头旋转变量
     private Quaternion targetLookBackRotation;
     private Quaternion originalRotation;
@@ -72,7 +65,6 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         mainCamera = Camera.main;
         watcher = FindObjectOfType<WatcherAI>();
-        playerMeshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
 
         // 确保CharacterController可用
         if (controller != null)
@@ -89,14 +81,6 @@ public class PlayerController : MonoBehaviour
         initialForward = transform.forward;
         initialRight = transform.right;
 
-        // 初始化相机状态
-        if (mainCamera != null)
-        {
-            originalCameraParent = mainCamera.transform.parent;
-            originalCameraPosition = mainCamera.transform.localPosition;
-            originalCameraRotation = mainCamera.transform.localRotation;
-        }
-
         // 动画参数哈希
         speedParamHash = Animator.StringToHash("Speed");
         groundedParamHash = Animator.StringToHash("IsGrounded");
@@ -110,8 +94,31 @@ public class PlayerController : MonoBehaviour
         if (animator == null)
             Debug.LogWarning("缺少Animator组件，动画系统无法工作");
 
+        // 隐藏玩家模型（第一人称视角）
+        HidePlayerModel();
+
         // 初始化UI状态
         UpdateAllUI();
+    }
+
+    // 隐藏玩家模型（第一人称视角）
+    void HidePlayerModel()
+    {
+        // 获取所有渲染器并隐藏
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.enabled = false;
+        }
+
+        // 获取所有SkinnedMeshRenderer并隐藏
+        SkinnedMeshRenderer[] skinnedRenderers = GetComponentsInChildren<SkinnedMeshRenderer>();
+        foreach (SkinnedMeshRenderer skinnedRenderer in skinnedRenderers)
+        {
+            skinnedRenderer.enabled = false;
+        }
+
+        Debug.Log("玩家模型已隐藏（第一人称视角）");
     }
 
     // ===== 生命值系统 =====
@@ -178,11 +185,9 @@ public class PlayerController : MonoBehaviour
         HandleLookBack();
         HandleTurning();
         HandleJump();
-        HandleFirstPersonToggle();
         UpdateAnimations();
         HandleLookBackRotation();
         UpdateCooldown();
-        UpdateFirstPersonCamera();
 
         // 实时同步UI状态
         UpdateAllUI();
@@ -301,9 +306,6 @@ public class PlayerController : MonoBehaviour
             animator.SetFloat(speedParamHash, 0f);
         }
 
-        if (mainCamera != null && !isFirstPerson)
-            mainCamera.transform.RotateAround(transform.position, Vector3.up, 180f);
-
         if (watcher != null)
             watcher.OnPlayerLookedAt(true);
 
@@ -321,12 +323,6 @@ public class PlayerController : MonoBehaviour
         if (animator != null)
             animator.SetBool(lookBackParamHash, false);
 
-        if (mainCamera != null && !isFirstPerson)
-        {
-            mainCamera.transform.localPosition = originalCameraPosition;
-            mainCamera.transform.localRotation = originalCameraRotation;
-        }
-
         if (watcher != null)
             watcher.OnPlayerLookedAt(false);
     }
@@ -339,63 +335,6 @@ public class PlayerController : MonoBehaviour
             transform.rotation = Quaternion.Lerp(transform.rotation, targetLookBackRotation, 3f * Time.deltaTime);
             if (animator != null)
                 animator.SetFloat(speedParamHash, 0f);
-        }
-    }
-
-    // ===== 第一人称切换 =====
-    void HandleFirstPersonToggle()
-    {
-        if (Input.GetKeyDown(KeyCode.V))
-            ToggleFirstPerson();
-    }
-
-    void ToggleFirstPerson()
-    {
-        isFirstPerson = !isFirstPerson;
-        if (isFirstPerson)
-            EnterFirstPerson();
-        else
-            ExitFirstPerson();
-    }
-
-    void EnterFirstPerson()
-    {
-        if (playerMeshRenderer != null)
-            playerMeshRenderer.enabled = false;
-
-        if (isLookingBack)
-            StopLookBack();
-
-        if (mainCamera != null)
-            mainCamera.transform.SetParent(null);
-
-        Debug.Log("切换到第一人称视角");
-    }
-
-    void ExitFirstPerson()
-    {
-        if (playerMeshRenderer != null)
-            playerMeshRenderer.enabled = true;
-
-        if (mainCamera != null)
-        {
-            mainCamera.transform.SetParent(originalCameraParent);
-            mainCamera.transform.localPosition = originalCameraPosition;
-            mainCamera.transform.localRotation = originalCameraRotation;
-        }
-
-        Debug.Log("切换回第三人称视角");
-    }
-
-    // ===== 更新第一人称相机 =====
-    void UpdateFirstPersonCamera()
-    {
-        if (isFirstPerson && mainCamera != null)
-        {
-            Vector3 targetPosition = transform.position + transform.TransformDirection(firstPersonCameraOffset);
-            Quaternion targetRotation = transform.rotation;
-            mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, cameraSmoothness * Time.deltaTime);
-            mainCamera.transform.rotation = Quaternion.Lerp(mainCamera.transform.rotation, targetRotation, cameraSmoothness * Time.deltaTime);
         }
     }
 
@@ -484,7 +423,7 @@ public class PlayerController : MonoBehaviour
     // ===== Gizmos绘制 =====
     void OnDrawGizmos()
     {
-        if (Application.isPlaying && isFirstPerson)
+        if (Application.isPlaying)
         {
             Gizmos.color = Color.red;
             Vector3 cameraPos = transform.position + transform.TransformDirection(firstPersonCameraOffset);
