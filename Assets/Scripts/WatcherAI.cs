@@ -150,16 +150,27 @@ public class WatcherAI : MonoBehaviour
     void TriggerGameOver()
     {
         Debug.Log("GAME OVER - You were caught by the Watcher!");
-        Time.timeScale = 0;
-        Debug.Log("=== GAME OVER ===");
-        Debug.Log("Press R to restart");
 
-        // 怪物追上玩家时，立即停止声音
+        // 重要：先停止声音，再暂停时间
+        // 停止Watcher的脚步声
         if (footstepsComponent != null)
         {
-            footstepsComponent.StopImmediately(); // 使用立即停止方法
+            footstepsComponent.StopImmediately();
             Debug.Log("怪物追上玩家：Watcher声音已立即停止");
         }
+
+        // 停止背景音乐 - 使用立即停止
+        if (BackgroundMusicManager.Instance != null)
+        {
+            BackgroundMusicManager.Instance.OnGameOver();
+            Debug.Log("游戏结束：背景音乐已停止");
+        }
+
+        // 最后暂停时间
+        Time.timeScale = 0;
+
+        Debug.Log("=== GAME OVER ===");
+        Debug.Log("Press R to restart");
 
         // 同时禁用Watcher的移动
         isHalted = true;

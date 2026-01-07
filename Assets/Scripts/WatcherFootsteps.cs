@@ -5,8 +5,8 @@ public class WatcherFootsteps : MonoBehaviour
 {
     [Header("声音设置")]
     public AudioClip proximitySound; // 靠近时的持续声音
-    public float minVolume = 0.1f; // 最远距离时的最小音量
-    public float maxVolume = 1.0f; // 最近距离时的最大音量
+    public float minVolume = 0.5f; // 最远距离时的最小音量
+    public float maxVolume = 5.0f; // 最近距离时的最大音量
 
     [Header("距离设置")]
     public float startDistance = 10f; // 开始听到声音的距离

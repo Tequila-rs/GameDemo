@@ -1,4 +1,4 @@
-// BackgroundMusicManager.cs - 完整优化版
+// BackgroundMusicManager.cs - 修复游戏结束音乐停止问题
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -13,7 +13,7 @@ public class BackgroundMusicManager : MonoBehaviour
 
     [Header("音量设置")]
     [Range(0f, 1f)]
-    public float baseVolume = 0.3f;      // 基础音量（降低默认值）
+    public float baseVolume = 0.077f;      // 基础音量（降低默认值）
     public bool useMasterVolume = true;  // 是否使用主音量设置
 
     [Header("动态音量调节")]
@@ -32,6 +32,9 @@ public class BackgroundMusicManager : MonoBehaviour
     private float dynamicVolumeModifier = 1f; // 动态音量调节器
     private float currentDynamicVolume = 1f;  // 当前动态音量
     private WatcherFootsteps watcherFootsteps; // 鬼的脚步声组件
+
+    // 新增：游戏状态标志
+    private bool isGameOver = false;
 
     // 单例模式
     public static BackgroundMusicManager Instance { get; private set; }
@@ -82,6 +85,9 @@ public class BackgroundMusicManager : MonoBehaviour
 
     void Update()
     {
+        // 游戏结束时暂停所有更新
+        if (isGameOver) return;
+
         // 处理淡入淡出
         if (isFading && audioSource.isPlaying)
         {
@@ -96,6 +102,7 @@ public class BackgroundMusicManager : MonoBehaviour
                 if (targetVolume <= 0f && audioSource.volume <= 0f)
                 {
                     audioSource.Stop();
+                    Debug.Log("淡出完成，背景音乐已停止");
                 }
             }
         }
@@ -248,6 +255,9 @@ public class BackgroundMusicManager : MonoBehaviour
             return;
         }
 
+        // 重置游戏状态
+        isGameOver = false;
+
         if (!audioSource.isPlaying)
         {
             audioSource.Play();
@@ -262,21 +272,33 @@ public class BackgroundMusicManager : MonoBehaviour
         Debug.Log("开始播放背景音乐");
     }
 
-    // 停止背景音乐
+    // 停止背景音乐（使用淡出效果）
     public void Stop()
     {
         StartFade(0f, fadeOutTime);
         Debug.Log("停止播放背景音乐（淡出中）");
     }
 
-    // 立即停止（无淡出效果）
+    // 立即停止（无淡出效果）- 用于游戏结束
     public void StopImmediately()
     {
-        audioSource.Stop();
-        audioSource.volume = 0f;
+        isGameOver = true;
+
+        // 跳过淡入淡出系统，直接停止
         isFading = false;
 
-        Debug.Log("立即停止背景音乐");
+        if (audioSource != null)
+        {
+            if (audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+            audioSource.volume = 0f;
+        }
+
+        targetVolume = 0f;
+
+        Debug.Log("立即停止背景音乐（游戏结束）");
     }
 
     // 暂停背景音乐
@@ -379,16 +401,19 @@ public class BackgroundMusicManager : MonoBehaviour
         isFading = true;
     }
 
-    // 游戏结束时调用
+    // 游戏结束时调用 - 修改为立即停止
     public void OnGameOver()
     {
-        Stop();
+        StopImmediately();  // 使用立即停止而不是淡出
         Debug.Log("游戏结束，背景音乐停止");
     }
 
     // 游戏重新开始时调用
     public void OnGameRestart()
     {
+        // 重置游戏状态
+        isGameOver = false;
+
         if (ShouldPlay())
         {
             Play();
