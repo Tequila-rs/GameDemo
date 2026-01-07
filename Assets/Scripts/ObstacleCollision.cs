@@ -210,22 +210,19 @@ public class ObstacleCollision : MonoBehaviour
             playerHealth.RestartGame();
         }
 
-        // 重置玩家的回头次数
+        // 重置玩家的回头次数和方向系统 - 使用公开方法而不是反射
         if (playerController != null)
         {
-            // 通过反射重置回头次数
-            var lookbackField = typeof(PlayerController).GetField("currentLookBackCharges",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var maxLookbackField = typeof(PlayerController).GetField("maxLookBackCharges",
-                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            // 重置回头次数
+            ResetPlayerLookBackCharges();
 
-            if (lookbackField != null && maxLookbackField != null)
-            {
-                int maxCharges = (int)maxLookbackField.GetValue(playerController);
-                lookbackField.SetValue(playerController, maxCharges);
-                Debug.Log($"重置回头次数: {maxCharges}/{maxCharges}");
-            }
+            // 重置移动方向系统
+            ResetPlayerDirectionSystem();
 
+            // 重置回头状态
+            ResetPlayerLookBackState();
+
+            // 启用玩家移动
             playerController.SetMovementEnabled(true);
             Debug.Log("已启用玩家移动");
         }
@@ -252,6 +249,66 @@ public class ObstacleCollision : MonoBehaviour
         StartCoroutine(EnsurePlayerReset());
     }
 
+    // 重置玩家回头次数
+    private void ResetPlayerLookBackCharges()
+    {
+        // 通过反射获取并重置回头次数
+        var lookbackField = typeof(PlayerController).GetField("currentLookBackCharges",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var maxLookbackField = typeof(PlayerController).GetField("maxLookBackCharges",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+
+        if (lookbackField != null && maxLookbackField != null)
+        {
+            int maxCharges = (int)maxLookbackField.GetValue(playerController);
+            lookbackField.SetValue(playerController, maxCharges);
+            Debug.Log($"重置回头次数: {maxCharges}/{maxCharges}");
+        }
+    }
+
+    // 重置玩家方向系统
+    private void ResetPlayerDirectionSystem()
+    {
+        // 重置初始方向向量
+        var initialForwardField = typeof(PlayerController).GetField("initialForward",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var initialRightField = typeof(PlayerController).GetField("initialRight",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var canTurnField = typeof(PlayerController).GetField("canTurn",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        if (initialForwardField != null && initialRightField != null && canTurnField != null)
+        {
+            // 重置为当前transform的方向
+            initialForwardField.SetValue(playerController, transform.forward);
+            initialRightField.SetValue(playerController, transform.right);
+            canTurnField.SetValue(playerController, true);
+
+            Debug.Log($"重置方向系统: 前向={transform.forward}, 右向={transform.right}, 可转向=true");
+        }
+    }
+
+    // 重置玩家回头状态
+    private void ResetPlayerLookBackState()
+    {
+        // 重置回头相关状态
+        var isLookingBackField = typeof(PlayerController).GetField("isLookingBack",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var targetLookBackRotationField = typeof(PlayerController).GetField("targetLookBackRotation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var originalRotationField = typeof(PlayerController).GetField("originalRotation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        if (isLookingBackField != null && targetLookBackRotationField != null && originalRotationField != null)
+        {
+            isLookingBackField.SetValue(playerController, false);
+            targetLookBackRotationField.SetValue(playerController, transform.rotation);
+            originalRotationField.SetValue(playerController, transform.rotation);
+
+            Debug.Log($"重置回头状态: 不再回头, 目标旋转={transform.rotation.eulerAngles}");
+        }
+    }
+
     private System.Collections.IEnumerator EnsurePlayerReset()
     {
         yield return new WaitForSeconds(0.1f);
@@ -268,6 +325,10 @@ public class ObstacleCollision : MonoBehaviour
             transform.rotation = restartRotation;
             if (characterController != null) characterController.enabled = true;
         }
+
+        // 额外：确保方向系统正确
+        yield return new WaitForSeconds(0.1f);
+        Debug.Log($"重置后方向: 前向={transform.forward}, 右向={transform.right}");
     }
 
     // 检查是否设置了自定义起点位置

@@ -409,6 +409,49 @@ public class PlayerController : MonoBehaviour
         UIManager.Instance?.UpdateCoolDownUI(isOnCooldown, currentCooldownTime, lookBackCooldown);
     }
 
+    // ===== 公开的重置方法 =====
+    /// <summary>
+    /// 重置玩家方向系统和所有状态
+    /// </summary>
+    public void ResetDirectionSystem()
+    {
+        // 重置初始方向向量
+        initialForward = transform.forward;
+        initialRight = transform.right;
+        canTurn = true;
+
+        // 重置回头状态
+        isLookingBack = false;
+        originalRotation = transform.rotation;
+        targetLookBackRotation = transform.rotation;
+
+        // 重置移动状态
+        isMovementEnabled = true;
+
+        // 重置回头次数
+        currentLookBackCharges = maxLookBackCharges;
+        isOnCooldown = false;
+        currentCooldownTime = 0f;
+
+        // 重置移动变量
+        moveDirection = Vector3.zero;
+        velocityY = 0f;
+        currentSpeed = 0f;
+
+        // 重置动画状态
+        if (animator != null)
+        {
+            animator.SetBool(lookBackParamHash, false);
+            animator.SetFloat(speedParamHash, 0f);
+            animator.SetBool(groundedParamHash, true);
+        }
+
+        // 重置UI
+        UpdateAllUI();
+
+        Debug.Log("玩家方向系统已完全重置");
+    }
+
     // ===== 外部接口 =====
     public void SetMovementEnabled(bool enabled)
     {
@@ -418,6 +461,17 @@ public class PlayerController : MonoBehaviour
     public bool IsLookingBack()
     {
         return isLookingBack;
+    }
+
+    // ===== 获取当前状态（供调试用）=====
+    public string GetPlayerState()
+    {
+        return $"移动: {(isMovementEnabled ? "启用" : "禁用")}, " +
+               $"回头: {(isLookingBack ? "是" : "否")}, " +
+               $"可转向: {(canTurn ? "是" : "否")}, " +
+               $"前向: {initialForward}, " +
+               $"右向: {initialRight}, " +
+               $"回头次数: {currentLookBackCharges}/{maxLookBackCharges}";
     }
 
     // ===== Gizmos绘制 =====
