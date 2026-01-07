@@ -1297,6 +1297,62 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 400050, guid: 5d67c81cdf5717340b0943f1f80dd628, type: 3}
   m_PrefabInstance: {fileID: 89430281}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &94329822
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 94329824}
+  - component: {fileID: 94329825}
+  m_Layer: 0
+  m_Name: BackgroundMusicManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &94329824
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 94329822}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 83.07291, y: 0.01213038, z: 37.23132}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &94329825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 94329822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb4b25c37ca9b1b468f0a4f0fdab054e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bgmClip: {fileID: 8300000, guid: 4f4b1db5acbc6bc418bf3af5785797e8, type: 3}
+  playOnAwake: 1
+  loop: 1
+  fadeInTime: 2
+  fadeOutTime: 2
+  baseVolume: 0.17
+  useMasterVolume: 1
+  enableDynamicVolume: 1
+  minDynamicVolume: 0.1
+  maxDynamicVolume: 0.3
+  watcherCloseDistance: 5
+  volumeSmoothTime: 1
 --- !u!4 &115417246 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 464552, guid: 64b3f36e835346747865afbf6cf62acf, type: 3}
@@ -4655,9 +4711,9 @@ GameObject:
   - component: {fileID: 529052836}
   - component: {fileID: 529052835}
   - component: {fileID: 529052834}
+  - component: {fileID: 529052842}
   - component: {fileID: 529052840}
-  - component: {fileID: 529052839}
-  - component: {fileID: 529052838}
+  - component: {fileID: 529052841}
   m_Layer: 0
   m_Name: Watcher
   m_TagString: Watcher
@@ -4754,7 +4810,26 @@ Transform:
   - {fileID: 733651788}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!82 &529052838
+--- !u!114 &529052840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 529052833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8bd8ff97a756b42a559e1037f7e86b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseSpeed: 5
+  accelerationRate: 0.5
+  maxSpeed: 10
+  minDistance: 2
+  player: {fileID: 0}
+  currentSpeed: 0
+  isHalted: 0
+--- !u!82 &529052841
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4850,7 +4925,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &529052839
+--- !u!114 &529052842
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4862,7 +4937,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 896917dc2c3c1e149bf66b700cbaa15e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  proximitySound: {fileID: 8300000, guid: 3274d4835ae124743a334d743b6c433d, type: 3}
+  proximitySound: {fileID: 8300000, guid: ba0fec427752098438c8125b0ff40ed0, type: 3}
   minVolume: 0.1
   maxVolume: 1
   startDistance: 10
@@ -4870,25 +4945,6 @@ MonoBehaviour:
   fadeSpeed: 3
   showDebugInfo: 0
   isPlaying: 0
---- !u!114 &529052840
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 529052833}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d8bd8ff97a756b42a559e1037f7e86b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  baseSpeed: 5
-  accelerationRate: 0.5
-  maxSpeed: 10
-  minDistance: 2
-  player: {fileID: 0}
-  currentSpeed: 0
-  isHalted: 0
 --- !u!1 &542140971
 GameObject:
   m_ObjectHideFlags: 0
@@ -6759,8 +6815,8 @@ PrefabInstance:
       addedObject: {fileID: 1198367841}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1686174373880542, guid: 17ac7eebcd6e04cc1909e60b6bc2fc01, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 725103649}
+      insertIndex: 3
+      addedObject: {fileID: 725103653}
   m_SourcePrefab: {fileID: 100100000, guid: 17ac7eebcd6e04cc1909e60b6bc2fc01, type: 3}
 --- !u!4 &725103647 stripped
 Transform:
@@ -6772,7 +6828,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1686174373880542, guid: 17ac7eebcd6e04cc1909e60b6bc2fc01, type: 3}
   m_PrefabInstance: {fileID: 725103646}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &725103649
+--- !u!114 &725103653
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6781,15 +6837,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 725103648}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08242e9a8e96ba74e9034054e9b86ce5, type: 3}
+  m_Script: {fileID: 11500000, guid: ced1c4852e9332248b5c8f104a71e4f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  duration: 1
+  duration: 10
   healAmount: 20
   lookBackCharges: 1
   speedMultiplier: 1.5
   gizmoRadius: 0.5
-  speedEffect: {fileID: 0}
+  chargeEffect: {fileID: 0}
 --- !u!1001 &726463847
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21035,3 +21091,4 @@ SceneRoots:
   - {fileID: 807358691}
   - {fileID: 711325921}
   - {fileID: 674508839}
+  - {fileID: 94329824}
