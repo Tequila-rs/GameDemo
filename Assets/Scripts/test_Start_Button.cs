@@ -4,8 +4,10 @@ using UnityEngine.SceneManagement;
 
 public class StartUIController : MonoBehaviour
 {
-    public Button startBtn;   // 开始按钮
-    public Button exitBtn;    // 新增：退出按钮
+    public Button startBtn;         // 开始按钮
+    public Button exitBtn;          // 退出按钮
+    public Button controlsBtn;      // 新增：Controls按钮
+    public GameObject controlsPanel;// 新增：操作说明面板
     public string gameSceneName = "SampleScene"; // 游戏场景名
 
     void Start()
@@ -14,10 +16,16 @@ public class StartUIController : MonoBehaviour
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        // 开始按钮绑定场景跳转
+        // 初始隐藏操作说明面板
+        if (controlsPanel != null)
+        {
+            controlsPanel.SetActive(false);
+        }
+
+        // 按钮事件绑定
         startBtn.onClick.AddListener(OnStartButtonClick);
-        // 退出按钮绑定退出逻辑
         exitBtn.onClick.AddListener(OnExitButtonClick);
+        controlsBtn.onClick.AddListener(ToggleControlsPanel); // 新增：Controls按钮绑定
     }
 
     // 开始按钮点击事件
@@ -35,15 +43,29 @@ public class StartUIController : MonoBehaviour
         }
     }
 
-    // 新增：退出按钮点击事件
+    // 退出按钮点击事件
     private void OnExitButtonClick()
     {
         Debug.Log("=====退出按钮已点击=====");
-        // 编辑器中退出播放模式，打包后退出程序
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
-            Application.Quit();
+        Application.Quit();
 #endif
+    }
+
+    // 新增：Controls按钮点击事件（切换操作说明面板显隐）
+    private void ToggleControlsPanel()
+    {
+        if (controlsPanel != null)
+        {
+            // 切换面板的“显示/隐藏”状态
+            controlsPanel.SetActive(!controlsPanel.activeSelf);
+            Debug.Log(controlsPanel.activeSelf ? "操作说明面板已显示" : "操作说明面板已隐藏");
+        }
+        else
+        {
+            Debug.LogWarning("请先在Inspector中拖入ControlsPanel对象！");
+        }
     }
 }
