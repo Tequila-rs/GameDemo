@@ -10,31 +10,33 @@ public class WatcherAI : MonoBehaviour
     public float maxSpeed = 10.0f;
     public float minDistance = 2f;
     [Header("Player Path Tracking")]
-    public float pathRecordInterval = 0.2f; // ¼ÇÂ¼Íæ¼ÒÂ·¾¶µÄÊ±¼ä¼ä¸ô
-    public int maxPathPoints = 100; // ×î´ó¼ÇÂ¼µÄÂ·¾¶µãÊýÁ¿£¨±ÜÃâÄÚ´æÒç³ö£©
-    public float pathFollowSmoothTime = 0.1f; // ¸úËæÂ·¾¶µÄÆ½»¬Ê±¼ä
+    public float pathRecordInterval = 0.2f; // ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
+    public int maxPathPoints = 100; // ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    public float pathFollowSmoothTime = 0.1f; // ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½Ê±ï¿½ï¿½
     [Header("Pursuit Settings")]
-    public float directPursuitRange = 10f; // ¾àÀëÍæ¼Ò×ã¹»½üÊ±Ö±½Ó×·»÷£¬²»ÑØÂ·¾¶
+    public float directPursuitRange = 10f; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã¹»ï¿½ï¿½Ê±Ö±ï¿½ï¿½×·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½
 
-    private Transform player;
-    private float currentSpeed;
-    private bool isHalted = false;
+    // ï¿½ï¿½Îªpublicï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å±ï¿½ï¿½ï¿½ï¿½ï¿½
+    [HideInInspector] public Transform player;
+    [HideInInspector] public float currentSpeed;
+    [HideInInspector] public bool isHalted = false;
+
     private Vector3 startPosition;
     private float turnSmoothVelocity;
 
-    // Íæ¼ÒÂ·¾¶Ïà¹Ø
+    // ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½
     private List<Vector3> playerPath = new List<Vector3>();
     private int currentPathIndex = 0;
     private float lastRecordTime;
 
     void Start()
     {
-        // ÕÒµ½Íæ¼Ò
+        // ï¿½Òµï¿½ï¿½ï¿½ï¿½
         player = GameObject.FindGameObjectWithTag("Player").transform;
         currentSpeed = baseSpeed;
         startPosition = transform.position;
 
-        // ³õÊ¼»¯¸ß¶È
+        // ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ß¶ï¿½
         AdjustHeightPosition();
 
         if (player == null)
@@ -42,7 +44,7 @@ public class WatcherAI : MonoBehaviour
             Debug.LogError("Player not found! Make sure Player has 'Player' tag.");
         }
 
-        // ³õÊ¼»¯Â·¾¶¼ÇÂ¼Ê±¼ä
+        // ï¿½ï¿½Ê¼ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½Â¼Ê±ï¿½ï¿½
         lastRecordTime = Time.time;
     }
 
@@ -50,39 +52,39 @@ public class WatcherAI : MonoBehaviour
     {
         if (player == null) return;
 
-        // ³ÖÐø¼ÇÂ¼Íæ¼ÒÂ·¾¶
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Â·ï¿½ï¿½
         RecordPlayerPath();
 
         if (!isHalted)
         {
-            // ºËÐÄÂß¼­£º¾àÀë½üÔòÖ±½Ó×·Íæ¼Ò£¬·ñÔòÑØÍæ¼ÒÂ·¾¶×·
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½×·ï¿½ï¿½Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½×·
             FollowPlayerPathOrDirect();
             Accelerate();
         }
 
-        // ¼ì²éÊÇ·ñ×¥µ½Íæ¼Ò
+        // ï¿½ï¿½ï¿½ï¿½Ç·ï¿½×¥ï¿½ï¿½ï¿½ï¿½ï¿½
         CheckCatchPlayer();
-        // Î¬³Ö¸ß¶È
+        // Î¬ï¿½Ö¸ß¶ï¿½
         MaintainHeight();
     }
 
     /// <summary>
-    /// ¼ÇÂ¼Íæ¼ÒµÄÒÆ¶¯Â·¾¶
+    /// ï¿½ï¿½Â¼ï¿½ï¿½Òµï¿½ï¿½Æ¶ï¿½Â·ï¿½ï¿½
     /// </summary>
     void RecordPlayerPath()
     {
-        // °´¹Ì¶¨Ê±¼ä¼ä¸ô¼ÇÂ¼£¬±ÜÃâÂ·¾¶µã¹ý¶à
+        // ï¿½ï¿½ï¿½Ì¶ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         if (Time.time - lastRecordTime >= pathRecordInterval)
         {
             Vector3 playerPos = player.position;
-            playerPos.y = transform.position.y; // Í³Ò»¸ß¶È£¬±ÜÃâYÖáÆ«²î
+            playerPos.y = transform.position.y; // Í³Ò»ï¿½ß¶È£ï¿½ï¿½ï¿½ï¿½ï¿½Yï¿½ï¿½Æ«ï¿½ï¿½
 
-            // ±ÜÃâ¼ÇÂ¼ÖØ¸´Î»ÖÃ£¨Íæ¼Ò¾²Ö¹Ê±£©
+            // ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½Ø¸ï¿½Î»ï¿½Ã£ï¿½ï¿½ï¿½Ò¾ï¿½Ö¹Ê±ï¿½ï¿½
             if (playerPath.Count == 0 || Vector3.Distance(playerPath[playerPath.Count - 1], playerPos) > 0.1f)
             {
                 playerPath.Add(playerPos);
 
-                // ÏÞÖÆÂ·¾¶µãÊýÁ¿£¬³¬³öÔòÒÆ³ý×î¾ÉµÄ
+                // ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½Éµï¿½
                 if (playerPath.Count > maxPathPoints)
                 {
                     playerPath.RemoveAt(0);
@@ -94,18 +96,18 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// ºËÐÄ×·»÷Âß¼­£º½ü¾àÖ±½Ó×·Íæ¼Ò£¬Ô¶¾àÑØÍæ¼ÒÂ·¾¶×·
+    /// ï¿½ï¿½ï¿½ï¿½×·ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½×·ï¿½ï¿½Ò£ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½×·
     /// </summary>
     void FollowPlayerPathOrDirect()
     {
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // Çé¿ö1£º¾àÀëÍæ¼Ò×ã¹»½ü£¬Ö±½Ó³¯ÏòÍæ¼Ò×·»÷
+        // ï¿½ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã¹»ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×·ï¿½ï¿½
         if (distanceToPlayer <= directPursuitRange && playerPath.Count > 0)
         {
             DirectPursuitPlayer();
         }
-        // Çé¿ö2£º¾àÀë½ÏÔ¶£¬ÑØÍæ¼ÒµÄÂ·¾¶×·»÷
+        // ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½Â·ï¿½ï¿½×·ï¿½ï¿½
         else if (playerPath.Count > currentPathIndex)
         {
             FollowPlayerPath();
@@ -113,14 +115,14 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Ö±½Ó³¯ÏòÍæ¼Ò×·»÷£¨½ü¾àÀë£©
+    /// Ö±ï¿½Ó³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£©
     /// </summary>
     void DirectPursuitPlayer()
     {
         Vector3 direction = (player.position - transform.position).normalized;
-        direction.y = 0; // ºöÂÔYÖá
+        direction.y = 0; // ï¿½ï¿½ï¿½ï¿½Yï¿½ï¿½
 
-        // Æ½»¬×ªÏòÍæ¼Ò
+        // Æ½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½
         if (direction.magnitude >= 0.1f)
         {
             float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
@@ -129,24 +131,24 @@ public class WatcherAI : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
         }
 
-        // ÏòÍæ¼ÒÒÆ¶¯
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½
         transform.position += transform.forward * currentSpeed * Time.deltaTime;
 
-        // µ÷ÊÔ»æÖÆ£ºÖ±½Ó×·»÷µÄÉäÏß£¨ºìÉ«£©
+        // ï¿½ï¿½ï¿½Ô»ï¿½ï¿½Æ£ï¿½Ö±ï¿½ï¿½×·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½É«ï¿½ï¿½
         Debug.DrawRay(transform.position, transform.forward * 3f, Color.red);
         Debug.DrawLine(transform.position, player.position, Color.yellow);
     }
 
     /// <summary>
-    /// ÑØÍæ¼ÒµÄÀúÊ·Â·¾¶×·»÷£¨Ô¶¾àÀë£©
+    /// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½Ê·Â·ï¿½ï¿½×·ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ë£©
     /// </summary>
     void FollowPlayerPath()
     {
         Vector3 targetPos = playerPath[currentPathIndex];
         Vector3 direction = (targetPos - transform.position).normalized;
-        direction.y = 0; // ºöÂÔYÖá
+        direction.y = 0; // ï¿½ï¿½ï¿½ï¿½Yï¿½ï¿½
 
-        // Æ½»¬×ªÏòÄ¿±êÂ·¾¶µã
+        // Æ½ï¿½ï¿½×ªï¿½ï¿½Ä¿ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½
         if (direction.magnitude >= 0.1f)
         {
             float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
@@ -155,23 +157,23 @@ public class WatcherAI : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
         }
 
-        // ÏòÂ·¾¶µãÒÆ¶¯
+        // ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½
         transform.position += transform.forward * currentSpeed * Time.deltaTime;
 
-        // ¼ì²éÊÇ·ñµ½´ïµ±Ç°Â·¾¶µã£¬µ½´ïÔòÇÐ»»ÏÂÒ»¸ö
+        // ï¿½ï¿½ï¿½ï¿½Ç·ñµ½´ïµ±Ç°Â·ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
         float distanceToPathPoint = Vector3.Distance(transform.position, targetPos);
         if (distanceToPathPoint <= 0.5f)
         {
             currentPathIndex++;
-            // ·ÀÖ¹Ë÷ÒýÔ½½ç
+            // ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½Ô½ï¿½ï¿½
             currentPathIndex = Mathf.Min(currentPathIndex, playerPath.Count - 1);
         }
 
-        // µ÷ÊÔ»æÖÆ£ºÂ·¾¶×·»÷µÄÉäÏß£¨ÂÌÉ«£©ºÍÂ·¾¶Ïß£¨À¶É«£©
+        // ï¿½ï¿½ï¿½Ô»ï¿½ï¿½Æ£ï¿½Â·ï¿½ï¿½×·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½É«ï¿½ï¿½
         Debug.DrawRay(transform.position, transform.forward * 3f, Color.green);
         Debug.DrawLine(transform.position, targetPos, Color.blue);
 
-        // »æÖÆÍæ¼ÒµÄÍêÕûÂ·¾¶
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½
         for (int i = 0; i < playerPath.Count - 1; i++)
         {
             Debug.DrawLine(playerPath[i], playerPath[i + 1], Color.cyan);
@@ -179,7 +181,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// µ÷ÕûWatcherµÄ¸ß¶È£¬·ÀÖ¹YÖáÆ«ÒÆ
+    /// ï¿½ï¿½ï¿½ï¿½Watcherï¿½Ä¸ß¶È£ï¿½ï¿½ï¿½Ö¹Yï¿½ï¿½Æ«ï¿½ï¿½
     /// </summary>
     void AdjustHeightPosition()
     {
@@ -193,7 +195,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// ¼ÓËÙÂß¼­£¨³ÖÐø¼ÓËÙÖ±µ½×î´óËÙ¶È£©
+    /// ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶È£ï¿½
     /// </summary>
     void Accelerate()
     {
@@ -202,7 +204,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Î¬³Ö¸ß¶È£¬·ÀÖ¹WatcherµôÏÂÈ¥
+    /// Î¬ï¿½Ö¸ß¶È£ï¿½ï¿½ï¿½Ö¹Watcherï¿½ï¿½ï¿½ï¿½È¥
     /// </summary>
     void MaintainHeight()
     {
@@ -219,7 +221,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// ¼ì²éÊÇ·ñ×¥µ½Íæ¼Ò
+    /// ï¿½ï¿½ï¿½ï¿½Ç·ï¿½×¥ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     void CheckCatchPlayer()
     {
@@ -227,7 +229,7 @@ public class WatcherAI : MonoBehaviour
 
         float directDistance = Vector3.Distance(transform.position, player.position);
 
-        // ¾àÀë×ã¹»½ü£¬ÇÒÍæ¼ÒÔÚÊÓÒ°·¶Î§ÄÚÔò²¶»ñ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ã¹»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò°ï¿½ï¿½Î§ï¿½ï¿½ï¿½ò²¶»ï¿½
         if (directDistance <= minDistance * 1.5f)
         {
             Vector3 toPlayer = player.position - transform.position;
@@ -241,7 +243,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// ×¥µ½Íæ¼ÒºóµÄÓÎÏ·½áÊøÂß¼­
+    /// ×¥ï¿½ï¿½ï¿½ï¿½Òºï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½
     /// </summary>
     void OnCatchPlayer()
     {
@@ -250,9 +252,9 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// ±»Íæ¼Ò×¢ÊÓÊ±ÔÝÍ££¬ÒÆ¿ªÊÓÏßºó»Ö¸´
+    /// ï¿½ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½Ê±ï¿½ï¿½Í£ï¿½ï¿½ï¿½Æ¿ï¿½ï¿½ï¿½ï¿½ßºï¿½Ö¸ï¿½
     /// </summary>
-    /// <param name="lookedAt">ÊÇ·ñ±»Íæ¼Ò×¢ÊÓ</param>
+    /// <param name="lookedAt">ï¿½Ç·ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½</param>
     public void OnPlayerLookedAt(bool lookedAt)
     {
         isHalted = lookedAt;
@@ -270,7 +272,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Åö×²¼ì²â£¨Íæ¼ÒÖ±½Ó×²µ½Watcher£©
+    /// ï¿½ï¿½×²ï¿½ï¿½â£¨ï¿½ï¿½ï¿½Ö±ï¿½ï¿½×²ï¿½ï¿½Watcherï¿½ï¿½
     /// </summary>
     void OnTriggerEnter(Collider other)
     {
@@ -281,7 +283,7 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// GUIÏÔÊ¾×´Ì¬£¨µ÷ÊÔÓÃ£©
+    /// GUIï¿½ï¿½Ê¾×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã£ï¿½
     /// </summary>
     void OnGUI()
     {
@@ -302,7 +304,7 @@ public class WatcherAI : MonoBehaviour
             }
         }
 
-        // µ÷ÊÔÐÅÏ¢ÏÔÊ¾
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ê¾
         GUIStyle statusStyle = new GUIStyle(GUI.skin.label);
         statusStyle.normal.textColor = Color.white;
         statusStyle.fontSize = 14;
@@ -315,25 +317,25 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// ÖØÆôÓÎÏ·
+    /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·
     /// </summary>
     void RestartGame()
     {
         Time.timeScale = 1;
 
-        // ÖØÖÃWatcher×´Ì¬
+        // ï¿½ï¿½ï¿½ï¿½Watcher×´Ì¬
         currentSpeed = baseSpeed;
         isHalted = false;
         currentPathIndex = 0;
-        playerPath.Clear(); // Çå¿ÕÍæ¼ÒÂ·¾¶¼ÇÂ¼
+        playerPath.Clear(); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½Â¼
 
-        // ÖØÖÃWatcherÎ»ÖÃ
+        // ï¿½ï¿½ï¿½ï¿½WatcherÎ»ï¿½ï¿½
         Vector3 newPos = startPosition;
         AdjustHeightPosition();
         transform.position = newPos;
         transform.rotation = Quaternion.identity;
 
-        // ÖØÖÃÍæ¼ÒÎ»ÖÃ£¨ÔÚWatcherÇ°·½10¸öµ¥Î»£©
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ã£ï¿½ï¿½ï¿½WatcherÇ°ï¿½ï¿½10ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
         if (player != null)
         {
             Vector3 playerStartPos = newPos;
@@ -347,36 +349,36 @@ public class WatcherAI : MonoBehaviour
     }
 
     /// <summary>
-    /// SceneÊÓÍ¼»æÖÆµ÷ÊÔGizmos
+    /// Sceneï¿½ï¿½Í¼ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½Gizmos
     /// </summary>
     void OnDrawGizmos()
     {
-        // »æÖÆÍæ¼ÒÂ·¾¶
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½
         Gizmos.color = Color.cyan;
         for (int i = 0; i < playerPath.Count - 1; i++)
         {
             Gizmos.DrawLine(playerPath[i], playerPath[i + 1]);
         }
 
-        // »æÖÆµ±Ç°×·»÷µÄÂ·¾¶µã
+        // ï¿½ï¿½ï¿½Æµï¿½Ç°×·ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½
         if (currentPathIndex < playerPath.Count)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawSphere(playerPath[currentPathIndex], 0.4f);
         }
 
-        // »æÖÆWatcherµÄÇ°½ø·½Ïò
+        // ï¿½ï¿½ï¿½ï¿½Watcherï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         Gizmos.color = Color.yellow;
         Vector3 forwardPos = transform.position + transform.forward * 2f;
         Gizmos.DrawLine(transform.position, forwardPos);
         Gizmos.DrawLine(forwardPos, forwardPos + (transform.right * 0.3f - transform.forward * 0.3f));
         Gizmos.DrawLine(forwardPos, forwardPos + (-transform.right * 0.3f - transform.forward * 0.3f));
 
-        // »æÖÆWatcherÎ»ÖÃ
+        // ï¿½ï¿½ï¿½ï¿½WatcherÎ»ï¿½ï¿½
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, 0.5f);
 
-        // »æÖÆÖ±½Ó×·»÷·¶Î§
+        // ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½×·ï¿½ï¿½ï¿½ï¿½Î§
         Gizmos.color = new Color(1, 0.5f, 0, 0.2f);
         Gizmos.DrawSphere(transform.position, directPursuitRange);
     }
