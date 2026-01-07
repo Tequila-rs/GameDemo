@@ -107,7 +107,7 @@ public class UIManager : MonoBehaviour
     private void DrawHealthUI()
     {
         largeStyle.normal.textColor = healthColor;
-        GUI.Label(new Rect(20, 30, 300, 40), $"生命值: {currentHealth}/{maxHealth}", largeStyle);
+        //GUI.Label(new Rect(20, 30, 300, 40), $"生命值: {currentHealth}/{maxHealth}", largeStyle);
     }
 
     private int currentLookBackCharges;
@@ -162,7 +162,7 @@ public class UIManager : MonoBehaviour
                      "自动前进 | A/D: 转向 | 空格: 回头\n" +
                      "V: 切换视角 | 拾取药水触发特效\n" +
                      "Ctrl: 打开/关闭设置面板"; // 新增Ctrl按键提示
-        GUI.Label(new Rect(20, Screen.height - 140, 300, 120), tips, hintStyle);
+        //GUI.Label(new Rect(20, Screen.height - 140, 300, 120), tips, hintStyle);
     }
     #endregion
 
@@ -203,7 +203,7 @@ public class UIManager : MonoBehaviour
             GUI.Box(fillRect, GUIContent.none);
 
             largeStyle.normal.textColor = Color.white;
-            GUI.Label(bgRect, $"加速特效: {speedBoostRemainingTime:F1}s", largeStyle);
+            GUI.Label(bgRect, $"加速持续: {speedBoostRemainingTime:F1}s", largeStyle);
         }
     }
     #endregion
